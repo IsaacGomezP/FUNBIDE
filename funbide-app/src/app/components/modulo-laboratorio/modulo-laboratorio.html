@@ -1,0 +1,209 @@
+<div class="lab-shell">
+  <header class="lab-header">
+    <div>
+      <span class="eyebrow">FUNBIDE | Laboratorio</span>
+      <h1>Laboratorio Clínico</h1>
+      <p>Recepción de muestras, control de análisis, resultados y envío al paciente.</p>
+    </div>
+    <div class="lab-actions">
+      <button class="back-btn" (click)="volver()">
+        <i class="fas fa-arrow-left"></i> Volver
+      </button>
+    </div>
+  </header>
+
+  @if (toast) {
+    <div class="inline-notice" [class.info]="toastType === 'info'" [class.success]="toastType === 'success'" [class.warning]="toastType === 'warning'" [class.danger]="toastType === 'danger'">
+      <strong>{{ toastType | titlecase }}</strong>
+      <span>{{ toast }}</span>
+    </div>
+  }
+
+  <section class="lab-metrics">
+    <article class="metric-card primary">
+      <span>En cola</span>
+      <strong>{{ files.length }}</strong>
+      <small>Pacientes pendientes</small>
+    </article>
+    <article class="metric-card success">
+      <span>En proceso</span>
+      <strong>{{ files.filter(item => item.estado === 'en_proceso').length }}</strong>
+      <small>Trabajos activos</small>
+    </article>
+    <article class="metric-card warning">
+      <span>Completados</span>
+      <strong>{{ files.filter(item => item.estado === 'completado' || item.estado === 'enviado').length }}</strong>
+      <small>Resultados listos</small>
+    </article>
+    <article class="metric-card neutral">
+      <span>Rol</span>
+      <strong>{{ usuarioRol }}</strong>
+      <small>{{ usuarioNombre }}</small>
+    </article>
+  </section>
+
+  <section class="lab-workflow">
+    @if (vista === 'cola') {
+      <div class="panel queue-panel">
+        <div class="panel-head">
+          <div>
+            <span class="panel-tag">Paso 1</span>
+            <h2>Pacientes en laboratorio</h2>
+          </div>
+          <span class="status-pill">{{ files.length }} en espera</span>
+        </div>
+
+        <div class="queue-search">
+          <i class="fas fa-search"></i>
+          <input [(ngModel)]="busqueda" type="text" placeholder="Buscar por turno, cédula o paciente" />
+        </div>
+
+        @if (isLoading) {
+          <div class="empty-state">
+            <div class="spinner"></div>
+            <strong>Cargando expedientes...</strong>
+          </div>
+        } @else if (filtrarCola().length === 0) {
+          <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <strong>No hay pacientes pendientes</strong>
+            <span>Cuando caja envíe un paciente al área aparecerá aquí.</span>
+          </div>
+        } @else {
+          <div class="queue-list">
+            @for (paciente of filtrarCola(); track paciente.id) {
+              <article class="queue-item" [class.active]="fileSeleccionado?.id === paciente.id">
+                <div class="queue-code">{{ paciente.codigo_ticket }}</div>
+                <div class="queue-body">
+                  <strong>{{ paciente.paciente_nombre }}</strong>
+                  <span>{{ paciente.servicio_nombre }}</span>
+                  <small>Cédula {{ paciente.paciente_cedula }} · {{ paciente.created_at || 'Pendiente' }}</small>
+                </div>
+                <div class="queue-meta">
+                  <span class="flag pending">{{ paciente.estado }}</span>
+                  <button class="primary-btn mini-btn" (click)="abrirArchivo(paciente)">Abrir</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (vista === 'expediente' && fileSeleccionado) {
+      <div class="panel expediente-panel">
+        <div class="panel-head">
+          <div>
+            <span class="panel-tag">Paso 2</span>
+            <h2>Expediente de análisis</h2>
+          </div>
+          <span class="status-pill success">{{ expedienteActual?.estado || 'pendiente' }}</span>
+        </div>
+
+        <div class="ticket-card">
+          <div class="ticket-card__top">
+            <div>
+              <span class="ticket-brand">FUNBIDE LAB</span>
+              <h3>{{ fileSeleccionado.codigo_ticket }}</h3>
+            </div>
+            <span class="ticket-price">{{ fileSeleccionado.servicio_nombre }}</span>
+          </div>
+
+          <div class="ticket-details">
+            <div class="detail-row"><span>Paciente</span><strong>{{ fileSeleccionado.paciente_nombre }}</strong></div>
+            <div class="detail-row"><span>Cédula</span><strong>{{ fileSeleccionado.paciente_cedula }}</strong></div>
+            <div class="detail-row"><span>Teléfono</span><strong>{{ fileSeleccionado.paciente_telefono || 'No registrado' }}</strong></div>
+            <div class="detail-row"><span>Edad</span><strong>{{ fileSeleccionado.paciente_edad ?? 'N/D' }}</strong></div>
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h3>Datos de contacto y archivo</h3>
+          <div class="amount-grid">
+            <label class="full-width">Motivo / observación inicial
+              <input type="text" [(ngModel)]="archivoForm.motivo" placeholder="Ej. Ayuno, control, seguimiento..." />
+            </label>
+            <label>Correo
+              <input type="email" [(ngModel)]="archivoForm.correo" placeholder="correo@ejemplo.com" />
+            </label>
+            <label>WhatsApp
+              <input type="text" [(ngModel)]="archivoForm.whatsapp" placeholder="809..." />
+            </label>
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h3>Resultados</h3>
+          <div class="timeline-card">
+            @if (resultados.length === 0) {
+              <div class="empty-inline">Aún no se han agregado resultados.</div>
+            } @else {
+              @for (resultado of resultados; track resultado.id) {
+                <div class="detail-row">
+                  <span>{{ resultado.analisis }} <small>{{ resultado.rango_referencia || 'Sin rango' }}</small></span>
+                  <strong>{{ resultado.valor || 'Valor' }}</strong>
+                </div>
+              }
+            }
+          </div>
+
+          <div class="recipe-grid">
+            <div class="field">
+              <label>Análisis</label>
+              <input type="text" [(ngModel)]="analisisForm.analisis" placeholder="Ej. Glucosa" />
+            </div>
+            <div class="field">
+              <label>Valor</label>
+              <input type="text" [(ngModel)]="analisisForm.valor" placeholder="Resultado" />
+            </div>
+            <div class="field">
+              <label>Unidad</label>
+              <input type="text" [(ngModel)]="analisisForm.unidad" placeholder="mg/dL" />
+            </div>
+            <div class="field">
+              <label>Rango referencia</label>
+              <input type="text" [(ngModel)]="analisisForm.rango_referencia" placeholder="70-99" />
+            </div>
+            <div class="field full">
+              <label>Observación</label>
+              <input type="text" [(ngModel)]="analisisForm.observacion" placeholder="Comentario clínico" />
+            </div>
+          </div>
+          <button class="secondary-btn" (click)="agregarResultado()">
+            Agregar resultado
+          </button>
+        </div>
+
+        <div class="route-card">
+          <h3>Conclusión final</h3>
+          <div class="amount-grid">
+            <label class="full-width">Resumen de resultados
+              <input type="text" [(ngModel)]="archivoForm.resultadoGeneral" placeholder="Resumen corto..." />
+            </label>
+            <label class="full-width">Conclusión / hallazgo
+              <textarea [(ngModel)]="archivoForm.conclusion" rows="4" placeholder="Interpretación clínica..."></textarea>
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button class="primary-btn" (click)="atenderArchivo()">
+              Atender archivo
+            </button>
+            <button class="secondary-btn" (click)="completarAnalisis()">
+              Completar análisis
+            </button>
+            <button class="secondary-btn" (click)="enviarResultados()">
+              Enviar por correo / WhatsApp
+            </button>
+            <button class="secondary-btn" (click)="imprimirPDF()">
+              Imprimir PDF
+            </button>
+            <button class="secondary-btn" (click)="volverACola()">
+              Volver a la cola
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </section>
+</div>

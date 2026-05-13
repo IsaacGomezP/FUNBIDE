@@ -1,0 +1,621 @@
+﻿<div class="med-root">
+
+  <!-- HEADER -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="btn-icon-ghost" (click)="volver()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <div class="brand-block">
+        <span class="brand-label">FUNBIDE</span>
+        <span class="brand-sep">·</span>
+        <span class="brand-module">Módulo Clínico</span>
+      </div>
+    </div>
+
+    <div class="top-bar-center">
+      <div class="user-pill">
+        <div class="user-avatar">
+          <i class="fas fa-user-md"></i>
+        </div>
+        <div class="user-info">
+          <span class="user-role">{{ usuarioRol }}</span>
+          <strong class="user-name">Dr(a). {{ usuarioNombre }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-bar-right">
+      <div class="date-chip">
+        <i class="fas fa-calendar-day"></i>
+        <span>{{ currentDate | date:'EEE d MMM' }}</span>
+      </div>
+      <div class="stats-chips">
+        <div class="stat-chip waiting">
+          <span>{{ estadisticas.pendientes }}</span>
+          <label>Pendientes</label>
+        </div>
+        <div class="stat-chip doing">
+          <span>{{ estadisticas.en_proceso }}</span>
+          <label>En atención</label>
+        </div>
+        <div class="stat-chip done">
+          <span>{{ estadisticas.completados }}</span>
+          <label>Completados</label>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOAST -->
+  <div class="toast-bar" *ngIf="toast"
+    [class.success]="toastType === 'success'"
+    [class.warning]="toastType === 'warning'"
+    [class.danger]="toastType === 'danger'"
+    [class.info]="toastType === 'info'">
+    <i class="fas" [ngClass]="{
+      'fa-check-circle': toastType === 'success',
+      'fa-exclamation-triangle': toastType === 'warning',
+      'fa-times-circle': toastType === 'danger',
+      'fa-info-circle': toastType === 'info'
+    }"></i>
+    <span>{{ toast }}</span>
+  </div>
+
+  @if (vistaActual === 'bandeja') {
+    <section class="patient-entry-shell">
+      <div class="patient-entry-card">
+        <div class="entry-copy">
+          <span class="eyebrow">Acceso clínico</span>
+          <h2>Buscar paciente por cédula</h2>
+          <p>El médico identifica al paciente, selecciona el área y abre el expediente correspondiente.</p>
+        </div>
+        <div class="entry-form">
+          <div class="field">
+            <label>Cédula del paciente</label>
+            <input type="text" [(ngModel)]="cedulaBusqueda" placeholder="001-0000000-0" (keyup.enter)="buscarPacientePorCedula()">
+          </div>
+          <div class="field">
+            <label>Área de atención</label>
+            <select [(ngModel)]="areaAtencionSeleccionada">
+              @for (area of formulariosAtencion; track area.value) {
+                <option [value]="area.value">{{ area.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="entry-actions">
+            <button class="btn-refresh" (click)="buscarPacientePorCedula()" [disabled]="isLoading">
+              <i class="fas" [ngClass]="isLoading ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+              <span>{{ isLoading ? 'Buscando...' : 'Buscar paciente' }}</span>
+            </button>
+            <button class="btn-refresh" (click)="cedulaBusqueda=''; pacienteEncontrado=null; cedulaNoEncontrada=false">
+              <i class="fas fa-eraser"></i>
+              <span>Limpiar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      @if (cedulaNoEncontrada) {
+        <div class="patient-entry-empty">
+          <i class="fas fa-user-slash"></i>
+          <strong>No encontramos un expediente para esa cédula.</strong>
+          <span>Revise el número e intente de nuevo.</span>
+        </div>
+      }
+
+      @if (pacienteEncontrado) {
+        <div class="patient-found-card">
+          <div class="found-head">
+            <div>
+              <span class="eyebrow">Paciente localizado</span>
+              <h3>{{ pacienteEncontrado.paciente_nombre }}</h3>
+              <p>{{ pacienteEncontrado.paciente_cedula }} · {{ pacienteEncontrado.servicio_nombre }}</p>
+            </div>
+            <span class="status-dot" [class.done]="pacienteEncontrado.estado === 'completado'" [class.doing]="pacienteEncontrado.estado === 'en_proceso'" [class.waiting]="pacienteEncontrado.estado === 'borrador'">
+              {{ pacienteEncontrado.estado === 'completado' ? 'Completado' : pacienteEncontrado.estado === 'en_proceso' ? 'En atención' : 'Pendiente' }}
+            </span>
+          </div>
+          <div class="found-grid">
+            <div><span>Teléfono</span><strong>{{ pacienteEncontrado.paciente_telefono || 'Sin teléfono' }}</strong></div>
+            <div><span>Correo</span><strong>{{ pacienteEncontrado.paciente_correo || 'Sin correo' }}</strong></div>
+            <div><span>Área sugerida</span><strong>{{ areaVisible(pacienteEncontrado.area_destino) }}</strong></div>
+            <div><span>Ticket</span><strong>{{ pacienteEncontrado.codigo_ticket }}</strong></div>
+          </div>
+          <button class="btn-atender" (click)="iniciarFlujoDesdeCedula()">
+            <i class="fas fa-folder-plus"></i>
+            <span>Trabajar expediente del paciente</span>
+          </button>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- BANDEJA -->
+  @if (vistaActual === 'bandeja') {
+    <main class="bandeja-main">
+
+      <!-- Filtros y búsqueda -->
+      <div class="bandeja-controls">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            [(ngModel)]="busquedaExpediente"
+            placeholder="Buscar por nombre, cédula, ticket, área..."
+          />
+          @if (busquedaExpediente) {
+            <button class="clear-search" (click)="busquedaExpediente = ''">
+              <i class="fas fa-times"></i>
+            </button>
+          }
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Estado</label>
+            <div class="seg-control">
+              <button [class.active]="filtroEstado === 'todos'" (click)="filtroEstado = 'todos'">Todos</button>
+              <button [class.active]="filtroEstado === 'borrador'" (click)="filtroEstado = 'borrador'">Pendientes</button>
+              <button [class.active]="filtroEstado === 'en_proceso'" (click)="filtroEstado = 'en_proceso'">En atención</button>
+              <button [class.active]="filtroEstado === 'completado'" (click)="filtroEstado = 'completado'">Completados</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Área</label>
+            <select [(ngModel)]="filtroArea" class="area-select">
+              @for (area of areasDisponibles; track area) {
+                <option [value]="area">{{ area === 'todas' ? 'Todas las áreas' : area }}</option>
+              }
+            </select>
+          </div>
+
+          <button class="btn-refresh" (click)="cargarBandeja()" [disabled]="isLoading">
+            <i class="fas" [ngClass]="isLoading ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+            <span>{{ isLoading ? 'Cargando...' : 'Actualizar' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resultados count -->
+      <div class="result-count">
+        <span>{{ expedientesFiltrados.length }} expediente{{ expedientesFiltrados.length !== 1 ? 's' : '' }}</span>
+        @if (busquedaExpediente || filtroEstado !== 'todos' || filtroArea !== 'todas') {
+          <button class="clear-filters" (click)="busquedaExpediente = ''; filtroEstado = 'todos'; filtroArea = 'todas'">
+            <i class="fas fa-filter-slash"></i> Limpiar filtros
+          </button>
+        }
+      </div>
+
+      <!-- Grid de expedientes -->
+      @if (isLoading) {
+        <div class="loading-grid">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="skeleton-card">
+              <div class="sk-top"></div>
+              <div class="sk-line long"></div>
+              <div class="sk-line medium"></div>
+              <div class="sk-line short"></div>
+            </div>
+          }
+        </div>
+      } @else if (expedientesFiltrados.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon"><i class="fas fa-folder-open"></i></div>
+          <strong>Sin resultados</strong>
+          <p>No hay expedientes que coincidan con los filtros aplicados.</p>
+        </div>
+      } @else {
+        <div class="cards-grid">
+          @for (item of expedientesFiltrados; track item.id) {
+            <article class="exp-card"
+              [class.card-done]="item.estado === 'completado'"
+              [class.card-doing]="item.estado === 'en_proceso'"
+              [class.card-waiting]="item.estado === 'borrador'">
+
+              <div class="card-head">
+                <div class="area-badge" [style.background]="getAreaColor(item.area_destino) + '1a'" [style.color]="getAreaColor(item.area_destino)">
+                  <i class="fas" [ngClass]="getAreaIcono(item.area_destino)"></i>
+                  <span>{{ areaVisible(item.area_destino) }}</span>
+                </div>
+                <span class="estado-dot"
+                  [class.dot-done]="item.estado === 'completado'"
+                  [class.dot-doing]="item.estado === 'en_proceso'"
+                  [class.dot-waiting]="item.estado === 'borrador'">
+                  {{ item.estado === 'completado' ? 'Completado' : item.estado === 'en_proceso' ? 'En atención' : 'Pendiente' }}
+                </span>
+              </div>
+
+              <div class="card-body">
+                <strong class="patient-name">{{ item.paciente_nombre }}</strong>
+                <span class="patient-ci">{{ item.paciente_cedula }}</span>
+              </div>
+
+              <div class="card-details">
+                <div class="detail-row">
+                  <i class="fas fa-concierge-bell"></i>
+                  <span>{{ item.servicio_nombre }}</span>
+                </div>
+                <div class="detail-row">
+                  <i class="fas fa-phone"></i>
+                  <span>{{ item.paciente_telefono || 'Sin teléfono' }}</span>
+                </div>
+                <div class="detail-row">
+                  <i class="fas fa-ticket-alt"></i>
+                  <span>{{ item.codigo_ticket }}</span>
+                </div>
+              </div>
+
+              <button class="btn-atender"
+                [class.btn-ver]="item.estado === 'completado'"
+                (click)="abrirExpediente(item)">
+                <i class="fas" [ngClass]="item.estado === 'completado' ? 'fa-eye' : 'fa-stethoscope'"></i>
+                <span>{{ item.estado === 'completado' ? 'Ver expediente' : 'Atender paciente' }}</span>
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </main>
+  }
+
+  <!-- EXPEDIENTE -->
+  @if (vistaActual === 'expediente' && expedienteSeleccionado) {
+    <main class="expediente-main">
+
+      <!-- Sub-header del expediente -->
+      <div class="exp-subheader">
+        <div class="exp-subheader-left">
+          <button class="btn-back-exp" (click)="volverALista()">
+            <i class="fas fa-chevron-left"></i>
+            <span>Bandeja</span>
+          </button>
+          <div class="exp-title">
+            <div class="area-icon-lg" [style.background]="getAreaColor(expedienteSeleccionado.area_destino) + '20'" [style.color]="getAreaColor(expedienteSeleccionado.area_destino)">
+              <i class="fas" [ngClass]="getAreaIcono(expedienteSeleccionado.area_destino)"></i>
+            </div>
+            <div>
+              <h2>{{ formularioAreaActual.titulo }}</h2>
+              <p>{{ formularioAreaActual.descripcion }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-subheader-right">
+          <!-- Timer de consulta -->
+          <div class="timer-widget" [style.border-color]="timerColor">
+            <button class="timer-btn" (click)="tomarPaciente()" title="Iniciar / Pausar consulta" [style.color]="timerColor">
+              <i class="fas" [ngClass]="timerActivo ? 'fa-pause' : 'fa-play'"></i>
+            </button>
+            <span class="timer-display" [style.color]="timerColor">{{ timerLabel }}</span>
+            <button class="timer-reset" (click)="detenerTimer()" title="Reiniciar">
+              <i class="fas fa-stop"></i>
+            </button>
+          </div>
+
+          <span class="status-badge"
+            [class.done]="estadoActualClase === 'done'"
+            [class.doing]="estadoActualClase === 'doing'"
+            [class.waiting]="estadoActualClase === 'waiting'">
+            <i class="fas" [ngClass]="{
+              'fa-check-circle': estadoActualClase === 'done',
+              'fa-spinner fa-spin': estadoActualClase === 'doing',
+              'fa-clock': estadoActualClase === 'waiting'
+            }"></i>
+            {{ estadoActualEtiqueta }}
+          </span>
+
+          <button class="btn-pdf" (click)="generarPdf()">
+            <i class="fas fa-file-pdf"></i>
+            <span>PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Banda del paciente -->
+      <div class="patient-band">
+        <div class="patient-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="patient-main">
+          <strong>{{ expedienteSeleccionado.paciente_nombre }}</strong>
+          <span>{{ expedienteSeleccionado.paciente_cedula }}</span>
+        </div>
+        <div class="patient-chips">
+          <div class="pchip">
+            <i class="fas fa-phone"></i>
+            <span>{{ expedienteSeleccionado.paciente_telefono || 'Sin teléfono' }}</span>
+          </div>
+          <div class="pchip">
+            <i class="fas fa-envelope"></i>
+            <span>{{ expedienteSeleccionado.paciente_correo || 'Sin correo' }}</span>
+          </div>
+          <div class="pchip">
+            <i class="fas fa-concierge-bell"></i>
+            <span>{{ areaVisible(expedienteSeleccionado.servicio_nombre) }}</span>
+          </div>
+          <div class="pchip">
+            <i class="fas fa-ticket-alt"></i>
+            <span>{{ expedienteSeleccionado.codigo_ticket }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signos vitales rápidos -->
+      <div class="vitales-strip">
+        <div class="vital-input">
+          <label><i class="fas fa-heartbeat"></i> TA (mmHg)</label>
+          <input type="text" [(ngModel)]="consultaForm.presion_arterial" placeholder="120/80">
+        </div>
+        <div class="vital-input">
+          <label><i class="fas fa-heart"></i> FC (lpm)</label>
+          <input type="number" [(ngModel)]="consultaForm.frecuencia_cardiaca" placeholder="72">
+        </div>
+        <div class="vital-input">
+          <label><i class="fas fa-thermometer-half"></i> Temp (°C)</label>
+          <input type="number" [(ngModel)]="consultaForm.temperatura" placeholder="36.5">
+        </div>
+        <div class="vital-input">
+          <label><i class="fas fa-weight"></i> Peso (kg)</label>
+          <input type="number" [(ngModel)]="consultaForm.peso" placeholder="70">
+        </div>
+        <div class="vital-input">
+          <label><i class="fas fa-lungs"></i> SpO2 (%)</label>
+          <input type="number" [(ngModel)]="consultaForm.saturacion" placeholder="98">
+        </div>
+        <div class="vital-input vital-alergias">
+          <label><i class="fas fa-allergies"></i> Alergias</label>
+          <input type="text" [(ngModel)]="consultaForm.alergias" placeholder="NKDA / penicilina...">
+        </div>
+      </div>
+
+      <!-- Tabs de navegación -->
+      <div class="tabs-nav">
+        <button class="tab-btn" [class.active]="tabActiva === 'historia'" (click)="setTab('historia')">
+          <i class="fas fa-notes-medical"></i>
+          <span>Historia clínica</span>
+        </button>
+        <button class="tab-btn" [class.active]="tabActiva === 'evaluacion'" (click)="setTab('evaluacion')">
+          <i class="fas fa-microscope"></i>
+          <span>Evaluación</span>
+        </button>
+        <button class="tab-btn" [class.active]="tabActiva === 'tratamiento'" (click)="setTab('tratamiento')">
+          <i class="fas fa-pills"></i>
+          <span>Tratamiento
+            @if (recetas.length > 0) {
+              <span class="tab-count">{{ recetas.length }}</span>
+            }
+          </span>
+        </button>
+        <button class="tab-btn" [class.active]="tabActiva === 'archivos'" (click)="setTab('archivos')">
+          <i class="fas fa-paperclip"></i>
+          <span>Archivos
+            @if (archivos.length > 0) {
+              <span class="tab-count">{{ archivos.length }}</span>
+            }
+          </span>
+        </button>
+      </div>
+
+      <!-- Contenido de tabs -->
+      <div class="tab-content">
+
+        <!-- Tab: Historia clínica -->
+        @if (tabActiva === 'historia') {
+          <div class="tab-panel fade-in">
+            <div class="fields-grid">
+              <div class="field-block full">
+                <label>Motivo de consulta</label>
+                <textarea [(ngModel)]="consultaForm.motivo_consulta" rows="2" placeholder="¿Por qué consulta el paciente hoy?"></textarea>
+              </div>
+              <div class="field-block">
+                <label>Antecedentes relevantes</label>
+                <textarea [(ngModel)]="consultaForm.antecedentes" rows="4" placeholder="Enfermedades previas, cirugías, hospitalizaciones..."></textarea>
+              </div>
+              <div class="field-block">
+                <label>Síntomas actuales</label>
+                <textarea [(ngModel)]="consultaForm.sintomas_actuales" rows="4" placeholder="Descripción detallada de síntomas, inicio, duración..."></textarea>
+              </div>
+              <div class="field-block full">
+                <label>Signos vitales (texto libre)</label>
+                <textarea [(ngModel)]="consultaForm.signos_vitales" rows="2" placeholder="Observaciones adicionales sobre signos vitales..."></textarea>
+              </div>
+              <div class="field-block full">
+                <label><i class="fas fa-sticky-note"></i> Notas rápidas del médico</label>
+                <textarea [(ngModel)]="consultaForm.notas_rapidas" rows="2" placeholder="Anotaciones personales, recordatorios..."></textarea>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Tab: Evaluación médica -->
+        @if (tabActiva === 'evaluacion') {
+          <div class="tab-panel fade-in">
+            <div class="fields-grid">
+              <div class="field-block full">
+                <label>Examen físico</label>
+                <textarea [(ngModel)]="consultaForm.examen_fisico" rows="4" placeholder="Hallazgos del examen físico por sistemas..."></textarea>
+              </div>
+              <div class="field-block">
+                <label>Impresión clínica</label>
+                <textarea [(ngModel)]="consultaForm.impresion_clinica" rows="4" placeholder="Hipótesis diagnóstica inicial..."></textarea>
+              </div>
+              <div class="field-block">
+                <label>Diagnóstico <span class="required">*</span></label>
+                <textarea [(ngModel)]="consultaForm.diagnostico" rows="4" placeholder="Diagnóstico definitivo o presuntivo..."></textarea>
+              </div>
+              <div class="field-block full checkbox-area">
+                <label>Solicitudes clínicas</label>
+                <div class="checkbox-row">
+                  <label class="toggle-check" [class.active]="consultaForm.requiere_receta">
+                    <input type="checkbox" [(ngModel)]="consultaForm.requiere_receta">
+                    <i class="fas fa-prescription-bottle-alt"></i>
+                    <span>Requiere receta</span>
+                  </label>
+                  <label class="toggle-check" [class.active]="consultaForm.requiere_orden_estudio">
+                    <input type="checkbox" [(ngModel)]="consultaForm.requiere_orden_estudio">
+                    <i class="fas fa-flask"></i>
+                    <span>Requiere estudios</span>
+                  </label>
+                  <label class="toggle-check" [class.active]="consultaForm.requiere_interconsulta">
+                    <input type="checkbox" [(ngModel)]="consultaForm.requiere_interconsulta">
+                    <i class="fas fa-user-md"></i>
+                    <span>Requiere interconsulta</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Tab: Tratamiento y receta -->
+        @if (tabActiva === 'tratamiento') {
+          <div class="tab-panel fade-in">
+            <div class="fields-grid">
+              <div class="field-block">
+                <label>Tratamiento</label>
+                <textarea [(ngModel)]="consultaForm.tratamiento" rows="3" placeholder="Plan de tratamiento..."></textarea>
+              </div>
+              <div class="field-block">
+                <label>Indicaciones al paciente</label>
+                <textarea [(ngModel)]="consultaForm.indicaciones" rows="3" placeholder="Instrucciones de cuidado en casa..."></textarea>
+              </div>
+              <div class="field-block full">
+                <label>Conclusión</label>
+                <textarea [(ngModel)]="consultaForm.conclusion" rows="2" placeholder="Resumen y próximos pasos..."></textarea>
+              </div>
+            </div>
+
+            <!-- Agregar medicamento -->
+            <div class="recipe-section">
+              <h4><i class="fas fa-pills"></i> Agregar medicamento a la receta</h4>
+              <div class="recipe-inputs">
+                <div class="field-block">
+                  <label>Medicamento *</label>
+                  <input type="text" [(ngModel)]="medicamentoForm.medicamento" placeholder="Ej: Amoxicilina 500mg">
+                </div>
+                <div class="field-block">
+                  <label>Dosis</label>
+                  <input type="text" [(ngModel)]="medicamentoForm.dosis" placeholder="Ej: 1 cápsula">
+                </div>
+                <div class="field-block">
+                  <label>Frecuencia</label>
+                  <input type="text" [(ngModel)]="medicamentoForm.frecuencia" placeholder="Ej: c/8h">
+                </div>
+                <div class="field-block">
+                  <label>Duración</label>
+                  <input type="text" [(ngModel)]="medicamentoForm.duracion" placeholder="Ej: 7 días">
+                </div>
+                <div class="field-block full">
+                  <label>Instrucciones especiales</label>
+                  <input type="text" [(ngModel)]="medicamentoForm.instrucciones" placeholder="Ej: Tomar con alimentos">
+                </div>
+              </div>
+              <button class="btn-add-med" (click)="agregarMedicamento()">
+                <i class="fas fa-plus"></i>
+                <span>Agregar a la receta</span>
+              </button>
+            </div>
+
+            <!-- Lista de recetas -->
+            <div class="recipe-list-section">
+              <h4><i class="fas fa-list-ul"></i> Receta activa
+                @if (recetas.length > 0) {
+                  <span class="count-badge">{{ recetas.length }}</span>
+                }
+              </h4>
+              @if (recetas.length === 0) {
+                <div class="empty-recipe">
+                  <i class="fas fa-prescription-bottle"></i>
+                  <span>Sin medicamentos agregados aún</span>
+                </div>
+              } @else {
+                <div class="recipe-cards">
+                  @for (med of recetas; track med.id; let i = $index) {
+                    <div class="recipe-card">
+                      <div class="recipe-num">{{ i + 1 }}</div>
+                      <div class="recipe-info">
+                        <strong>{{ med.medicamento }}</strong>
+                        <div class="recipe-tags">
+                          @if (med.dosis) { <span><i class="fas fa-dot-circle"></i> {{ med.dosis }}</span> }
+                          @if (med.frecuencia) { <span><i class="fas fa-clock"></i> {{ med.frecuencia }}</span> }
+                          @if (med.duracion) { <span><i class="fas fa-calendar"></i> {{ med.duracion }}</span> }
+                        </div>
+                        @if (med.instrucciones) {
+                          <small>{{ med.instrucciones }}</small>
+                        }
+                      </div>
+                      <button class="btn-del-med" (click)="eliminarMedicamento(i)">
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Tab: Archivos -->
+        @if (tabActiva === 'archivos') {
+          <div class="tab-panel fade-in">
+            <div class="archivos-section">
+              @if (archivos.length === 0) {
+                <div class="empty-recipe">
+                  <i class="fas fa-folder-open"></i>
+                  <span>Sin archivos adjuntos en este expediente</span>
+                </div>
+              } @else {
+                <div class="archivos-grid">
+                  @for (file of archivos; track file.id) {
+                    <a class="archivo-card" [href]="file.url" target="_blank" rel="noopener noreferrer">
+                      <div class="archivo-icon">
+          <i class="fas" [ngClass]="{
+            'fa-file-pdf': file.tipo_archivo.includes('pdf'),
+            'fa-file-image': file.tipo_archivo.includes('image'),
+            'fa-file-alt': !file.tipo_archivo.includes('pdf') && !file.tipo_archivo.includes('image')
+          }"></i>
+                      </div>
+                      <div class="archivo-info">
+                        <strong>{{ file.nombre_archivo }}</strong>
+                        <span>{{ file.tipo_archivo }}</span>
+                      </div>
+                      <i class="fas fa-external-link-alt archivo-link"></i>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <!-- Footer de acciones -->
+      <div class="exp-footer">
+        <div class="footer-left">
+          <div class="whatsapp-field">
+            <i class="fab fa-whatsapp"></i>
+            <input type="text" [(ngModel)]="consultaForm.whatsapp_envio" placeholder="WhatsApp de respaldo">
+          </div>
+        </div>
+        <div class="footer-right">
+          <button class="btn-save" (click)="guardarExpediente()" [disabled]="isSaving">
+            @if (isSaving) {
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Guardando...</span>
+            } @else {
+              <i class="fas fa-check-circle"></i>
+              <span>Completar expediente</span>
+            }
+          </button>
+        </div>
+      </div>
+
+    </main>
+  }
+
+</div>
+
+

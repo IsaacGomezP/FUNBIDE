@@ -1,0 +1,178 @@
+﻿<!-- src/app/components/dashboard/dashboard.html -->
+<div class="dashboard">
+  <div class="top-header">
+    <div class="top-header-content">
+      <div class="header-info">
+        <i class="fas fa-hospital-user"></i>
+        <div class="user-details">
+          <span class="greeting">{{ getGreeting() }}</span>
+          <h1 class="user-name">{{ userName }}</h1>
+          <div class="role-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>{{ userRole }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="date-box">
+          <i class="fas fa-calendar-alt"></i>
+          <div class="date-details">
+            <span class="day">{{ getDayName() }}</span>
+            <strong class="full-date">{{ getFormattedDate() }}</strong>
+          </div>
+        </div>
+        <button class="logout-btn" (click)="onLogout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Salir</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon primary">
+          <i class="fas fa-user-injured"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Pacientes hoy</span>
+          <strong class="kpi-value">{{ stats.pacientesHoy }}</strong>
+          <span class="kpi-trend positive">{{ stats.loading ? 'Actualizando...' : getVariacionVsAyer() }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon success">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Atendidos</span>
+          <strong class="kpi-value">{{ stats.atendidosHoy }}</strong>
+          <span class="kpi-trend">{{ stats.loading ? 'Actualizando...' : getTasaCompletados() }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon warning">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">En espera</span>
+          <strong class="kpi-value">{{ stats.enEsperaHoy }}</strong>
+          <span class="kpi-trend warning-text">{{ stats.loading ? 'Actualizando...' : getVariacionEspera() }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon accent">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Eficiencia</span>
+          <strong class="kpi-value">{{ stats.eficienciaHoy }}<span class="small-percent">%</span></strong>
+          <span class="kpi-trend positive">{{ stats.loading ? 'Actualizando...' : 'Tasa real del dia' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modules-section">
+      <div class="section-header">
+        <div class="title-decoration"></div>
+        <div>
+          <h2>Módulos del Sistema</h2>
+          <p>Seleccione un módulo para comenzar</p>
+        </div>
+      </div>
+
+      <div class="modules-grid">
+        @for (module of modules; track module.id) {
+          <div class="module-card" (click)="onSelectModule(module.id)">
+            <div class="module-card-header" [style.background]="module.color">
+              <i class="fas" [ngClass]="module.icon"></i>
+            </div>
+            <div class="module-card-body">
+              <h3>{{ module.name }}</h3>
+              <p>{{ module.description }}</p>
+              <div class="module-card-footer">
+                <span>Acceder al módulo</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="module-card" (click)="openTVScreen()">
+          <div class="module-card-header" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+            <i class="fas fa-tv"></i>
+          </div>
+          <div class="module-card-body">
+            <h3>Pantalla de Turnos</h3>
+            <p>Visualización para TV / Monitor con turnos en tiempo real</p>
+            <div class="module-card-footer">
+              <span>Abrir en nueva ventana</span>
+              <i class="fas fa-external-link-alt"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="system-banner">
+      <div class="section-header">
+        <div class="title-decoration"></div>
+        <div>
+          <h2>Información del sistema</h2>
+          <p>FUNBIDE | RNC 430090387 | Plataforma clínica y administrativa</p>
+        </div>
+      </div>
+
+      <div class="system-grid">
+        <div class="system-card">
+          <i class="fas fa-building"></i>
+          <div>
+            <span>Institución</span>
+            <strong>FUNBIDE</strong>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <i class="fas fa-id-card"></i>
+          <div>
+            <span>RNC</span>
+            <strong>430090387</strong>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <i class="fas fa-laptop-medical"></i>
+          <div>
+            <span>Plataforma</span>
+            <strong>Gestión clínica integral</strong>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <i class="fas fa-headset"></i>
+          <div>
+            <span>Soporte</span>
+            <strong>Equipo técnico disponible</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="system-footer">
+        <div class="support-note">
+          <i class="fas fa-info-circle"></i>
+          <span>Para incidencias, soporte funcional o ajustes del sistema, contacta al equipo de FUNBIDE.</span>
+        </div>
+        <a class="support-btn" href="https://wa.me/18097096986?text=Hola%2C%20necesito%20soporte%20con%20el%20sistema%20FUNBIDE." target="_blank" rel="noopener noreferrer">
+          <i class="fab fa-whatsapp"></i>
+          <span>Contactar soporte</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+

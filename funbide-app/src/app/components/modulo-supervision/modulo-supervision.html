@@ -1,0 +1,100 @@
+<div class="workspace-shell">
+  <header class="module-header">
+    <div>
+      <span class="eyebrow">Supervisión operativa</span>
+      <h1>Control central</h1>
+      <p>Monitoreo de turnos, personal activo y actividad general del sistema.</p>
+    </div>
+    <button class="back-btn" (click)="volver()">
+      <i class="fas fa-arrow-left"></i>
+      <span>Volver</span>
+    </button>
+  </header>
+
+  <section class="kpi-grid">
+    <article class="kpi-card" data-tone="blue">
+      <div class="kpi-icon"><i class="fas fa-ticket-alt"></i></div>
+      <div class="kpi-copy"><span>Total turnos</span><strong>{{ resumen.totalTurnos }}</strong><small>Turnos acumulados</small></div>
+    </article>
+    <article class="kpi-card" data-tone="green">
+      <div class="kpi-icon"><i class="fas fa-user-check"></i></div>
+      <div class="kpi-copy"><span>Activos</span><strong>{{ resumen.activos }}</strong><small>Turnos en curso</small></div>
+    </article>
+    <article class="kpi-card" data-tone="amber">
+      <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+      <div class="kpi-copy"><span>En espera</span><strong>{{ resumen.espera }}</strong><small>Pacientes por atender</small></div>
+    </article>
+    <article class="kpi-card" data-tone="purple">
+      <div class="kpi-icon"><i class="fas fa-users-cog"></i></div>
+      <div class="kpi-copy"><span>Usuarios activos</span><strong>{{ resumen.usuariosActivos }}</strong><small>Personal habilitado</small></div>
+    </article>
+  </section>
+
+  <section class="reports-grid bottom-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Turnos activos</h2>
+        <span>{{ turnosActivos.length }} en curso</span>
+      </div>
+      @if (loading) {
+        <div class="empty-inline">Cargando supervisión...</div>
+      } @else if (turnosActivos.length === 0) {
+        <div class="empty-inline">No hay turnos activos.</div>
+      } @else {
+        <div class="mini-table">
+          @for (t of turnosActivos; track t.id) {
+            <div class="mini-row">
+              <div>
+                <strong>{{ t.paciente_nombre }}</strong>
+                <small>{{ t.codigo }} · {{ t.servicio_nombre }}</small>
+              </div>
+              <span>{{ t.puesto_atencion || 'Sin puesto' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Cola en espera</h2>
+        <span>{{ turnosEspera.length }} pendientes</span>
+      </div>
+      @if (loading) {
+        <div class="empty-inline">Cargando supervisión...</div>
+      } @else if (turnosEspera.length === 0) {
+        <div class="empty-inline">No hay pacientes en espera.</div>
+      } @else {
+        <div class="mini-table">
+          @for (t of turnosEspera; track t.id) {
+            <div class="mini-row">
+              <div>
+                <strong>{{ t.paciente_nombre }}</strong>
+                <small>{{ t.codigo }} · {{ t.servicio_nombre }}</small>
+              </div>
+              <span>{{ t.estado }}</span>
+            </div>
+          }
+        </div>
+      }
+    </article>
+  </section>
+
+  <section class="panel" style="margin-top:20px;">
+    <div class="panel-head">
+      <h2>Personal activo</h2>
+      <span>{{ usuariosActivos.length }} usuarios habilitados</span>
+    </div>
+    <div class="mini-table">
+      @for (u of usuariosActivos; track u.id) {
+        <div class="mini-row">
+          <div>
+            <strong>{{ u.nombre_completo }}</strong>
+            <small>{{ u.rol }}</small>
+          </div>
+          <span>{{ u.activo ? 'Activo' : 'Inactivo' }}</span>
+        </div>
+      }
+    </div>
+  </section>
+</div>

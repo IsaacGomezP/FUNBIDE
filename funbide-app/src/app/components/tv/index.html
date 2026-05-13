@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FUNBIDE | Sistema de Turnos</title>
+    <link rel="stylesheet" href="css/tv.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        window.SUPABASE_URL = 'https://eaismlkdpmorblluzpki.supabase.co';
+        window.SUPABASE_ANON_KEY = 'sb_publishable_mazrg7bbDffya88koyYIEQ_gTc4yfLE';
+    </script>
+    <!-- Font Awesome 6 (opcional, para iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="tv-fullscreen">
+        <!-- HEADER CON INFORMACIÓN DE SUCURSAL -->
+        <header class="tv-header">
+            <div class="tv-header-top">
+                <div class="tv-header-left">
+                    <div class="tv-logo">
+                        <i class="fas fa-hospital-user"></i>
+                        <span>FUNBIDE</span>
+                    </div>
+                    <div class="tv-branch">
+                        <h2 id="sucursalNombre">Cargando...</h2>
+                        <p>SISTEMA DE TURNOS</p>
+                    </div>
+                </div>
+                <div class="tv-header-right">
+                    <div class="tv-datetime">
+                        <div class="tv-date" id="currentDate">-- de -- de ----</div>
+                        <div class="tv-time" id="currentTime">--:-- --</div>
+                    </div>
+                </div>
+            </div>
+            <div class="tv-ticker">
+                <div class="tv-ticker-label">
+                    <i class="fas fa-circle-info"></i>
+                    <span>FUNBIDE INFORMA</span>
+                    <i class="fas fa-circle-info"></i>
+                </div>
+                <div class="tv-ticker-marquee">
+                    <div class="tv-ticker-track" id="tickerTrack"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="tv-main">
+            <!-- COLUMNA IZQUIERDA: TURNOS EN ATENCIÓN -->
+            <section class="tv-section tv-attention">
+                <div class="tv-section-header">
+                    <i class="fas fa-bell"></i>
+                    <h3>EN ATENCIÓN</h3>
+                    <span class="tv-badge" id="attentionCount">0</span>
+                </div>
+                <div class="tv-cards-grid" id="cardsContainer">
+                    <div class="tv-placeholder">
+                        <i class="fas fa-inbox"></i>
+                        <p>No hay turnos en atención</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMNA DERECHA: PRÓXIMOS TURNOS -->
+            <section class="tv-section tv-queue">
+                <div class="tv-section-header">
+                    <i class="fas fa-list-ol"></i>
+                    <h3>PRÓXIMOS TURNOS</h3>
+                    <span class="tv-badge" id="queueCount">0</span>
+                </div>
+                <div class="tv-queue-list" id="nextList">
+                    <div class="tv-placeholder">
+                        <i class="fas fa-hourglass-half"></i>
+                        <p>No hay turnos en espera</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script src="js/tv.js"></script>
+</body>
+</html>

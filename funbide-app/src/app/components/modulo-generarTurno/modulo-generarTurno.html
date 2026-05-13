@@ -1,0 +1,196 @@
+<div class="cashier-module">
+  @if (notificationMessage) {
+    <div class="toast-notification" [ngClass]="notificationType">
+      <i class="fas" [class.fa-check-circle]="notificationType === 'success'"
+         [class.fa-info-circle]="notificationType === 'info'"
+         [class.fa-triangle-exclamation]="notificationType === 'warning'"
+         [class.fa-circle-xmark]="notificationType === 'danger'"></i>
+      <span>{{ notificationMessage }}</span>
+    </div>
+  }
+
+  <div class="top-header">
+    <div class="top-header-content">
+      <div class="header-info">
+        <span class="greeting">Bienvenido, {{ usuarioNombre || 'Cajero' }}</span>
+        <h1 class="user-name">Generación de Turnos</h1>
+        <div class="role-badge">
+          <i class="fas fa-ticket-alt"></i>
+          <span>{{ usuarioRol || 'Recepción / Turnos' }}</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="date-box">
+          <i class="fas fa-calendar-alt"></i>
+          <div class="date-details">
+            <span class="day">{{ currentDate | date:'EEEE' }}</span>
+            <strong class="full-date">{{ currentDate | date:'d MMMM yyyy' }}</strong>
+          </div>
+        </div>
+        <button class="logout-btn" (click)="volver()">
+          <i class="fas fa-arrow-left"></i>
+          <span>Volver al Dashboard</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-panel">
+    <div class="hero-copy">
+      <span class="eyebrow">Recepción de pacientes</span>
+      <h2>Ingrese cédula del paciente y el sistema genera su turno</h2>
+      <p>
+        El cajero registra el documento de identidad, completa nombre y edad, selecciona el servicio
+        solicitado y emite un ticket con prefijo por área.
+      </p>
+    </div>
+    <div class="hero-metrics">
+      <div class="metric-card">
+        <span>Servicios disponibles</span>
+        <strong>{{ servicios.length }}</strong>
+      </div>
+      <div class="metric-card accent">
+        <span>Ticket activo</span>
+        <strong>{{ ticketGenerado ? ticketGenerado.codigo : '—' }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="catalog-panel">
+      <div class="section-header">
+        <h2><i class="fas fa-id-card"></i> Datos del paciente</h2>
+        <p>Primero la cédula, luego el nombre, la edad y el servicio.</p>
+      </div>
+
+      <div class="patient-form">
+        <div class="form-field full-width">
+          <label>Ingrese cédula del paciente</label>
+          <input
+            type="text"
+            [(ngModel)]="pacienteCedula"
+            placeholder="001-1234567-8"
+            (blur)="onCedulaBlur()"
+          >
+          @if (isSearchingPaciente) {
+            <small class="field-hint">Buscando paciente en la base de datos...</small>
+          }
+          @if (esPacienteRecurrente) {
+            <small class="field-hint">Paciente recurrente. La edad se cargó desde el historial.</small>
+          } @else if (pacienteNombre && !pacienteFechaNacimiento) {
+            <small class="field-hint">Paciente nuevo. Complete la fecha de nacimiento para calcular la edad.</small>
+          }
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Nombre del paciente</label>
+            <input type="text" [(ngModel)]="pacienteNombre" placeholder="Nombre completo">
+          </div>
+          <div class="form-field">
+            <label>Fecha de nacimiento</label>
+            <input type="date" [(ngModel)]="pacienteFechaNacimiento" placeholder="AAAA-MM-DD" [disabled]="esPacienteRecurrente">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Teléfono</label>
+            <input type="text" [(ngModel)]="pacienteTelefono" placeholder="809-000-0000">
+          </div>
+          <div class="form-field">
+            <label>Correo electrónico</label>
+            <input type="email" [(ngModel)]="pacienteCorreo" placeholder="correo@ejemplo.com">
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top: 20px;">
+        <h2><i class="fas fa-layer-group"></i> Seleccione el servicio</h2>
+        <p>El prefijo del turno se asigna automáticamente según el área.</p>
+      </div>
+
+      <div class="services-grid">
+        @for (servicio of servicios; track servicio.id) {
+          <button
+            type="button"
+            class="service-card"
+            [class.is-selected]="servicioSeleccionadoId === servicio.id"
+            (click)="servicioSeleccionadoId = servicio.id">
+            <div class="service-icon">
+              <i class="fas {{ servicio.icono }}"></i>
+            </div>
+            <div class="service-body">
+              <div class="service-topline">
+                <strong>{{ servicio.nombre }}</strong>
+                <span class="service-code">{{ servicio.prefijo }}</span>
+              </div>
+              <p>{{ servicio.descripcion }}</p>
+              <div class="service-meta">
+                <span class="service-badge">{{ servicio.categoria }}</span>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-outline" type="button" (click)="limpiarFormulario()">
+          <i class="fas fa-broom"></i>
+          Limpiar
+        </button>
+        <button class="btn-primary" type="button" (click)="generarTicket()" [disabled]="isSavingTurno">
+          <i class="fas" [class.fa-spinner]="isSavingTurno" [class.fa-spin]="isSavingTurno" [class.fa-ticket-alt]="!isSavingTurno"></i>
+          Generar ticket
+        </button>
+      </div>
+    </section>
+
+    <aside class="checkout-panel">
+      <div class="checkout-card">
+        <div class="checkout-head">
+          <h3><i class="fas fa-receipt"></i> Ticket generado</h3>
+          <span class="checkout-tag">Turno actual</span>
+        </div>
+
+        @if (ticketGenerado) {
+          <div class="ticket-preview">
+            <div class="ticket-code">{{ ticketGenerado.codigo }}</div>
+            <div class="ticket-info">
+              <strong>{{ ticketGenerado.pacienteNombre }}</strong>
+              <p>{{ ticketGenerado.pacienteCedula }}</p>
+              <p>Edad: {{ ticketGenerado.pacienteEdad }}</p>
+              @if (ticketGenerado.pacienteFechaNacimiento) {
+                <p>Nacimiento: {{ ticketGenerado.pacienteFechaNacimiento }}</p>
+              }
+              <p>Servicio: {{ ticketGenerado.servicio }}</p>
+              <p>Prefijo: {{ ticketGenerado.prefijo }}</p>
+            </div>
+          </div>
+          <button class="btn-primary checkout-btn" type="button" (click)="imprimirTicket()">
+            <i class="fas fa-print"></i>
+            Imprimir ticket
+          </button>
+          <p class="print-hint">Al imprimir, el navegador abrirá el cuadro para elegir la impresora.</p>
+        } @else {
+          <div class="queue-card">
+            <h4><i class="fas fa-info-circle"></i> Instrucción</h4>
+            <ul>
+              <li>Ingrese la cédula del paciente.</li>
+              <li>Complete nombre y fecha de nacimiento.</li>
+              <li>Seleccione el servicio y genere el ticket.</li>
+            </ul>
+          </div>
+        }
+      </div>
+    </aside>
+  </div>
+
+  @if (showSuccessPulse) {
+    <div class="success-burst" aria-live="polite">
+      <div class="success-burst-card">
+        <i class="fas fa-circle-check"></i>
+        <strong>Turno generado</strong>
+        <span>{{ ticketGenerado?.codigo }}</span>
+      </div>
+    </div>
+  }
+</div>

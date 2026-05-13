@@ -1,0 +1,128 @@
+<div class="workspace-shell">
+  <header class="module-header">
+    <div>
+      <span class="eyebrow">Área administrativa</span>
+      <h1>Mantenimiento del sistema</h1>
+      <p>Gestión de usuarios, roles y acceso interno de FUNBIDE.</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="ghost-btn" (click)="nuevoUsuario()">
+        <i class="fas fa-plus"></i>
+        <span>Nuevo usuario</span>
+      </button>
+      <button class="back-btn" (click)="volver()">
+        <i class="fas fa-arrow-left"></i>
+        <span>Volver</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="info-strip">
+    <div class="info-card">
+      <span>Institución</span>
+      <strong>FUNBIDE</strong>
+    </div>
+    <div class="info-card">
+      <span>RNC</span>
+      <strong>430090387</strong>
+    </div>
+    <div class="info-card">
+      <span>Acceso</span>
+      <strong>{{ usuarioRol }}</strong>
+    </div>
+  </section>
+
+  <div class="toast" *ngIf="toast" [class.success]="toastType === 'success'" [class.warning]="toastType === 'warning'" [class.danger]="toastType === 'danger'">
+    {{ toast }}
+  </div>
+
+  <section class="workspace-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <h2>{{ modoEdicion ? 'Editar usuario' : 'Crear usuario' }}</h2>
+        <span>Permisos y acceso</span>
+      </div>
+
+      <div class="field">
+        <label>Nombre completo</label>
+        <input type="text" [(ngModel)]="usuarioForm.nombre_completo" placeholder="Nombre del colaborador">
+      </div>
+
+      <div class="field">
+        <label>Usuario</label>
+        <input type="text" [(ngModel)]="usuarioForm.username" placeholder="nombre.usuario">
+      </div>
+
+      <div class="field">
+        <label>Correo</label>
+        <input type="email" [(ngModel)]="usuarioForm.email" placeholder="correo@funbide.com">
+      </div>
+
+      <div class="field">
+        <label>Rol</label>
+        <select [(ngModel)]="usuarioForm.rol">
+          @for (rol of rolesDisponibles; track rol) {
+            <option [value]="rol">{{ rol }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Contraseña temporal</label>
+        <input type="password" [(ngModel)]="usuarioForm.password" placeholder="Dejar vacío al editar">
+      </div>
+
+      <label class="switch">
+        <input type="checkbox" [(ngModel)]="usuarioForm.activo">
+        <span>Usuario activo</span>
+      </label>
+
+      <div class="form-actions">
+        <button class="primary-btn" (click)="guardarUsuario()" [disabled]="guardando">
+          <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+          <span>{{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear usuario') }}</span>
+        </button>
+        <button class="secondary-btn" (click)="nuevoUsuario()">
+          <i class="fas fa-eraser"></i>
+          <span>Limpiar</span>
+        </button>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Usuarios registrados</h2>
+        <span>{{ usuariosFiltrados.length }} encontrados</span>
+      </div>
+
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" [(ngModel)]="filtro" placeholder="Buscar por nombre, usuario, correo o rol">
+      </div>
+
+      @if (loading) {
+        <div class="empty-state">Cargando usuarios...</div>
+      } @else if (usuariosFiltrados.length === 0) {
+        <div class="empty-state">No hay usuarios que coincidan.</div>
+      } @else {
+        <div class="users-list">
+          @for (usuario of usuariosFiltrados; track usuario.id) {
+            <div class="user-row">
+              <div class="user-main">
+                <strong>{{ usuario.nombre_completo }}</strong>
+                <span>{{ usuario.username }} · {{ usuario.email }}</span>
+                <small>{{ usuario.rol }}</small>
+              </div>
+              <div class="user-actions">
+                <span class="badge" [class.off]="!usuario.activo">{{ usuario.activo ? 'Activo' : 'Inactivo' }}</span>
+                <button (click)="editarUsuario(usuario)"><i class="fas fa-pen"></i></button>
+                <button (click)="eliminarUsuario(usuario)"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </article>
+  </section>
+</div>

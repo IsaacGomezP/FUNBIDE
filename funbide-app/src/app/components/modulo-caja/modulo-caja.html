@@ -1,0 +1,247 @@
+﻿<!-- src/app/components/modulo-caja/modulo-caja.html -->
+<div class="cashier-container">
+  <!-- HEADER (sin cambios, pero bien estructurado) -->
+  <header class="app-header">
+    <div class="header-brand">
+      <i class="fas fa-cash-register"></i>
+      <div>
+        <span class="badge">FUNBIDE | Caja</span>
+        <h1>Módulo de Caja</h1>
+        <p>Selección del servicio, cobro por tarifa y derivación al área correspondiente.</p>
+      </div>
+    </div>
+    <button class="btn-secondary" (click)="volver()">
+      <i class="fas fa-arrow-left"></i> Volver
+    </button>
+  </header>
+
+  <!-- TARJETAS DE ESTADÍSTICAS (KPIs) -->
+  <div class="stats-grid">
+    <div class="stat-card primary">
+      <span class="stat-label">Tickets en espera</span>
+      <strong class="stat-number">{{ totalPendientes }}</strong>
+      <small>Pacientes pendientes de cobro</small>
+    </div>
+    <div class="stat-card success">
+      <span class="stat-label">Pagados hoy</span>
+      <strong class="stat-number">{{ totalPagadosHoy }}</strong>
+      <small>Comprobantes emitidos</small>
+    </div>
+    <div class="stat-card warning">
+      <span class="stat-label">Paso actual</span>
+      <strong class="stat-number">{{ pasoActual === 1 ? '1' : pasoActual === 2 ? '2' : '3' }}</strong>
+      <small>1. Cola | 2. Cobro | 3. Médico</small>
+    </div>
+    <div class="stat-card neutral">
+      <span class="stat-label">Ingresos del día</span>
+      <strong class="stat-number">RD$ {{ totalIngresosNormalesHoy | number:'1.2-2' }}</strong>
+      <small>Pagos normales registrados</small>
+    </div>
+    <div class="stat-card warning">
+      <span class="stat-label">Cuentas por cobrar SENASA</span>
+      <strong class="stat-number">RD$ {{ totalPendienteSenasaHoy | number:'1.2-2' }}</strong>
+      <small>Monto acumulado por cobrar</small>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL DE TRABAJO (OCUPA TODO EL ESPACIO) -->
+  <div class="work-area">
+    <!-- PASO 1: LISTA DE TICKETS PENDIENTES -->
+    @if (pasoActual === 1) {
+      <div class="panel queue-panel">
+        <div class="panel-header">
+          <div>
+            <span class="step-badge">Paso 1</span>
+            <h2>Cola de Tickets</h2>
+          </div>
+          <span class="pill">{{ ticketsPendientes.length }} en espera</span>
+        </div>
+
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Buscar por ticket, cédula o nombre..." />
+        </div>
+
+        <div class="queue-list">
+          @for (ticket of ticketsPendientes; track ticket.id) {
+            <div class="queue-item" [class.selected]="ticketSeleccionado?.id === ticket.id">
+              <div class="item-code">{{ ticket.codigo }}</div>
+              <div class="item-info">
+                <strong>{{ ticket.pacienteNombre }}</strong>
+                <span>{{ ticket.servicioNombre }} · Destino: {{ ticket.areaDestino }}</span>
+              </div>
+              <div class="item-amount">RD$ {{ ticket.monto | number:'1.2-2' }}</div>
+              <div class="item-actions">
+                <button class="btn-call" (click)="llamarTicket(ticket)">Llamar</button>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-state">
+              <i class="fas fa-ticket-alt"></i>
+              <strong>No hay tickets pendientes</strong>
+              <span>Los turnos aparecerán aquí cuando sean generados.</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- PASO 2: PROCESO DE COBRO (PANTALLA COMPLETA) -->
+    @if (pasoActual === 2) {
+      <div class="panel payment-panel">
+        <div class="panel-header">
+          <div>
+            <span class="step-badge">Paso 2</span>
+            <h2>Cobro de Ticket</h2>
+          </div>
+          <span class="pill success">Cobro Activo</span>
+        </div>
+
+        @if (ticketSeleccionado) {
+          <div class="ticket-summary">
+            <div class="summary-left">
+              <span class="ticket-brand">FUNBIDE</span>
+              <h3>{{ ticketSeleccionado.codigo }}</h3>
+              <div class="patient-detail">
+                <p><strong>Paciente:</strong> {{ ticketSeleccionado.pacienteNombre }}</p>
+                <p><strong>Cédula:</strong> {{ ticketSeleccionado.pacienteCedula }}</p>
+                <p><strong>Servicio Solicitado:</strong> {{ ticketSeleccionado.servicioNombre }}</p>
+              </div>
+            </div>
+            <div class="summary-right">
+              <span class="total-label">Total a Pagar</span>
+              <strong class="total-amount">RD$ {{ totalCobroActual | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          @if (ticketSeleccionado.estado === 'llamando') {
+            <div class="info-call">
+              <i class="fas fa-volume-up"></i>
+              <strong>Paciente en caja</strong>
+              <span>Confirma su presencia para iniciar la atención.</span>
+              <button class="btn-primary" (click)="iniciarAtencion()">Iniciar Atención</button>
+            </div>
+          }
+
+          <div class="form-section">
+            <label>Buscar Servicio</label>
+            <input type="text" [(ngModel)]="busquedaServicio" (input)="onBusquedaServicioChange()" placeholder="Escribe consulta, laboratorio..." class="full-width" />
+            
+            <label>Selecciona el Servicio a Cobrar</label>
+            <div class="service-list">
+              @for (servicio of serviciosParaCobro; track servicio.id) {
+                <div class="service-option" [class.active]="ticketCobro.servicioCobroId === servicio.id" (click)="ticketCobro.servicioCobroId = servicio.id; onServicioCobroChange()">
+                  <div>
+                    <strong>{{ servicio.nombre }}</strong>
+                    <small>{{ servicio.codigo }} · Destino: {{ servicio.area_destino }}</small>
+                  </div>
+                  <strong>RD$ {{ servicio.precio | number:'1.2-2' }}</strong>
+                </div>
+              } @empty {
+                <div class="empty-state">No se encontraron servicios.</div>
+              }
+            </div>
+          </div>
+
+          <div class="payment-methods">
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'"><i class="fas fa-money-bill"></i> Efectivo</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'"><i class="fas fa-university"></i> Transferencia</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'"><i class="fas fa-shield-alt"></i> SENASA</button>
+          </div>
+
+          <div class="extra-fields">
+            @if (ticketCobro.metodoPago === 'efectivo') {
+              <div class="row">
+                <label>Monto Recibido</label>
+                <input type="number" [(ngModel)]="ticketCobro.montoRecibido" (input)="calcularCambio()" />
+                <label>Cambio</label>
+                <input type="text" [value]="ticketCobro.cambio | number:'1.2-2'" readonly />
+              </div>
+            } @else if (ticketCobro.metodoPago === 'transferencia') {
+              <label>Referencia de Transferencia</label>
+              <input type="text" [(ngModel)]="ticketCobro.referenciaPago" placeholder="Número o referencia bancaria" />
+            } @else if (ticketCobro.metodoPago === 'senasa') {
+              <div class="row">
+                <label>Seguro Médico</label>
+                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA" />
+                <label>Número de Afiliación</label>
+                <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
+              </div>
+            } @else {
+              <div class="info-card">Confirma el pago en el datáfono y presiona "Cobrar".</div>
+            }
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso">
+              <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
+            </button>
+            <button class="btn-secondary" (click)="imprimirComprobante()">
+              <i class="fas fa-print"></i> Imprimir
+            </button>
+          </div>
+        } @else {
+          <div class="empty-state large">
+            <i class="fas fa-hand-point-left"></i>
+            <strong>Selecciona un ticket</strong>
+            <span>Regresa al Paso 1 y elige un paciente para continuar.</span>
+          </div>
+        }
+
+        @if (notificacion) {
+          <div class="notification" [class]="notificacion.type">
+            <strong>{{ notificacion.title }}</strong> {{ notificacion.message }}
+          </div>
+        }
+
+        @if (mensajePacienteCobro) {
+          <div class="info-success">
+            <i class="fas fa-info-circle"></i>
+            <pre>{{ mensajePacienteCobro }}</pre>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- PASO 3: ENVÍO AL ÁREA -->
+    @if (pasoActual === 3) {
+      <div class="panel doctor-panel">
+        <div class="panel-header">
+          <div>
+            <span class="step-badge">Paso 3</span>
+            <h2>Enviar al área</h2>
+          </div>
+          <span class="pill route">Post-Pago</span>
+        </div>
+
+        @if (ultimoCobroTicketCodigo) {
+          <div class="info-success">
+            <i class="fas fa-check-circle"></i>
+            <strong>Pago Completado</strong>
+            <span>Turno {{ ultimoCobroTicketCodigo }} listo para ser enviado al área correspondiente.</span>
+          </div>
+        } @else {
+          <div class="empty-state">No hay pacientes procesados recientemente.</div>
+        }
+
+        <h3>Confirmación de envío</h3>
+        <div class="info-card">
+          El servicio seleccionado define automáticamente el área destino. Ya no hace falta elegir médico en caja.
+        </div>
+
+        <div class="timeline">
+          <div class="step done">Turno Generado</div>
+          <div class="step active">Cobro Exitoso</div>
+          <div class="step active">Enviar al área</div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-success btn-lg" (click)="enviarAlArea()">
+            <i class="fas fa-paper-plane"></i> Enviar al área
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

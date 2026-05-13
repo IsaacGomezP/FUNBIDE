@@ -1,0 +1,611 @@
+/* ============================================
+   FUNBIDE TV - SISTEMA DE TURNOS
+   Colores institucionales: #1D3973 (Azul FUNBIDE)
+   Diseño profesional para pantalla grande
+   ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #1D3973;
+    --primary-dark: #152c58;
+    --primary-light: #2a4a8a;
+    --primary-lighter: #3a5d9e;
+    --secondary: #3498db;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #00a8ff;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+    --shadow-xl: 0 16px 32px rgba(0,0,0,0.16);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 28px;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #eef2f8 0%, #e4e9f0 100%);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.tv-fullscreen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    max-width: 1920px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   HEADER - VERSIÓN MEJORADA
+   ============================================ */
+.tv-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    padding: 18px 36px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow-xl);
+    position: relative;
+    z-index: 10;
+}
+
+.tv-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+}
+
+.tv-header-left {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+}
+
+.tv-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.5px;
+    background: rgba(255,255,255,0.1);
+    padding: 8px 20px;
+    border-radius: var(--radius-xl);
+}
+
+.tv-logo i {
+    font-size: 32px;
+    color: rgba(255,255,255,0.95);
+}
+
+.tv-branch {
+    border-left: 2px solid rgba(255,255,255,0.2);
+    padding-left: 28px;
+}
+
+.tv-branch h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.tv-branch p {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+}
+
+.tv-header-right {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 24px;
+    border-radius: var(--radius-xl);
+    backdrop-filter: blur(4px);
+}
+
+.tv-datetime {
+    text-align: center;
+}
+
+.tv-date {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.5px;
+}
+
+.tv-time {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    margin-top: 2px;
+}
+
+/* ============================================
+   MAIN CONTENT - GRID DE DOS COLUMNAS
+   ============================================ */
+.tv-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 0.7fr;
+    gap: 24px;
+    padding: 28px 32px;
+    overflow: hidden;
+}
+
+/* Secciones generales */
+.tv-attention,
+.tv-next {
+    background: white;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tv-attention:hover,
+.tv-next:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.tv-section-header {
+    background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+    padding: 18px 24px;
+    border-bottom: 3px solid var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tv-section-header i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.tv-section-header h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--gray-800);
+    letter-spacing: 1.5px;
+    margin: 0;
+    flex: 1;
+}
+
+.tv-badge {
+    background: var(--primary);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 40px;
+    min-width: 32px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============================================
+   TURNOS EN ATENCIÓN - CARDS GRID
+   ============================================ */
+.tv-cards-container {
+    flex: 1;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+    overflow-y: auto;
+    align-content: flex-start;
+}
+
+.tv-card {
+    background: linear-gradient(135deg, white 0%, var(--gray-50) 100%);
+    border-radius: var(--radius-xl);
+    padding: 24px 16px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+}
+
+.tv-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+.tv-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--gray-300);
+}
+
+/* Card activa (estado Llamando) */
+.tv-card-active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-color: transparent;
+}
+
+.tv-card-active::before {
+    background: linear-gradient(90deg, var(--warning), #ffd93d);
+    height: 5px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.tv-card-active .tv-card-number,
+.tv-card-active .tv-card-puesto,
+.tv-card-active .tv-card-status {
+    color: white;
+}
+
+.tv-card-active .tv-card-divider {
+    background: rgba(255,255,255,0.3);
+}
+
+.tv-card-number {
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--gray-800);
+    display: block;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+}
+
+.tv-card-divider {
+    width: 50px;
+    height: 2px;
+    background: var(--gray-300);
+    margin: 14px auto;
+    border-radius: 2px;
+}
+
+.tv-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tv-card-puesto {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-600);
+}
+
+.tv-card-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 30px;
+    background: rgba(46, 204, 113, 0.12);
+    color: var(--success);
+    display: inline-block;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.tv-card-active .tv-card-status {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+/* ============================================
+   PRÓXIMOS TURNOS - LISTA VERTICAL
+   ============================================ */
+.tv-next-list {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tv-next-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 24px;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    transition: all 0.25s ease;
+    border: 1px solid var(--gray-200);
+    cursor: default;
+}
+
+.tv-next-item:hover {
+    background: white;
+    border-color: var(--gray-300);
+    transform: translateX(6px);
+    box-shadow: var(--shadow-md);
+}
+
+.tv-next-number {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--primary);
+    min-width: 100px;
+    letter-spacing: -0.5px;
+}
+
+.tv-next-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--gray-300);
+}
+
+.tv-next-info {
+    flex: 1;
+}
+
+.tv-next-servicio {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-600);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.tv-next-time {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-400);
+}
+
+/* ============================================
+   PLACEHOLDER (cuando no hay datos)
+   ============================================ */
+.tv-placeholder {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--gray-400);
+}
+
+.tv-placeholder i {
+    font-size: 56px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.tv-placeholder p {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ============================================
+   FOOTER - CINTILLO INFORMATIVO
+   ============================================ */
+.tv-ticker {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #0f1729 0%, #1a1a2e 100%);
+    overflow: hidden;
+    height: 52px;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+}
+
+.tv-ticker-label {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding: 0 28px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    z-index: 2;
+    position: relative;
+}
+
+.tv-ticker-label i {
+    font-size: 14px;
+}
+
+.tv-ticker-marquee {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+}
+
+.tv-ticker-track {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    animation: scrollTicker 35s linear infinite;
+    white-space: nowrap;
+}
+
+.tv-ticker-message {
+    display: inline-block;
+    padding: 0 45px;
+    color: var(--gray-400);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    position: relative;
+}
+
+.tv-ticker-message::before {
+    content: "•";
+    position: absolute;
+    left: 18px;
+    color: var(--primary-light);
+    font-size: 14px;
+}
+
+@keyframes scrollTicker {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* ============================================
+   SCROLLBAR PERSONALIZADA
+   ============================================ */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-200);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-500);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-600);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 1200px) {
+    .tv-main {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .tv-cards-container {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .tv-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px 24px 0;
+    }
+    
+    .tv-header-left {
+        justify-content: center;
+        gap: 20px;
+    }
+    
+    .tv-branch {
+        border-left: none;
+        padding-left: 0;
+    }
+    
+    .tv-main {
+        padding: 20px;
+    }
+    
+    .tv-cards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .tv-next-number {
+        font-size: 24px;
+        min-width: 70px;
+    }
+}
+
+@media (max-width: 600px) {
+    .tv-header-left {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .tv-section-header {
+        padding: 14px 18px;
+    }
+    
+    .tv-section-header h3 {
+        font-size: 14px;
+    }
+    
+    .tv-card-number {
+        font-size: 32px;
+    }
+    
+    .tv-ticker-label {
+        padding: 0 16px;
+    }
+    
+    .tv-ticker-label span {
+        display: none;
+    }
+    
+    .tv-ticker-message {
+        padding: 0 25px;
+    }
+}
+
+/* ============================================
+   ANIMACIONES ADICIONALES
+   ============================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tv-card,
+.tv-next-item {
+    animation: fadeIn 0.3s ease-out;
+}

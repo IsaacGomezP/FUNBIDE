@@ -1,0 +1,726 @@
+﻿<div class="pharmacy-module">
+
+  <!-- ===== TOAST NOTIFICATIONS (esquina superior derecha) ===== -->
+  @if (isLoading) {
+    <div class="loading-overlay" aria-live="polite" aria-busy="true">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <strong>Cargando inventario...</strong>
+        <p>Preparando los productos del módulo</p>
+      </div>
+    </div>
+  }
+  <div class="toast-stack" aria-live="polite">
+    @for (toast of toasts; track toast.id) {
+      <div class="toast-item toast-{{ toast.type }}" [class.toast-removing]="toast.removing">
+        <div class="toast-icon-wrap">
+          <i class="fas {{ getToastIcon(toast.type) }}"></i>
+        </div>
+        <div class="toast-body">
+          <strong>{{ toast.title }}</strong>
+          <p>{{ toast.message }}</p>
+        </div>
+        <button class="toast-close" (click)="removeToast(toast.id)" aria-label="Cerrar">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="toast-progress">
+          <div class="toast-progress-bar toast-progress-{{ toast.type }}" [style.width.%]="toast.progress"></div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ANIMACIÓN ÉXITO AL GUARDAR -->
+  @if (showSaveSuccess) {
+    <div class="save-success-overlay">
+      <div class="save-success-card">
+        <div class="save-success-icon"><i class="fas fa-check-circle"></i></div>
+        <strong>¡Guardado!</strong>
+        <p>Producto registrado en el inventario</p>
+      </div>
+    </div>
+  }
+
+  <!-- ENCABEZADO AZUL SUPERIOR -->
+  <div class="top-header">
+    <div class="top-header-content">
+      <div class="header-info">
+        <span class="greeting">Bienvenido, {{ usuarioNombre || 'Farmacéutico' }}</span>
+        <h1 class="user-name">Control de Inventario</h1>
+        <div class="role-badge">
+          <i class="fas fa-user-check"></i>
+          <span>{{ usuarioRol || 'Farmacia' }}</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="date-box">
+          <i class="fas fa-calendar-alt"></i>
+          <div class="date-details">
+            <span class="day">{{ currentDate | date:'EEEE' }}</span>
+            <strong class="full-date">{{ currentDate | date:'d MMMM yyyy' }}</strong>
+          </div>
+        </div>
+
+        <!-- Campanita -->
+        <div class="notification-area">
+          <button class="notification-bell" (click)="toggleNotifications()" [class.has-alerts]="getUnreadNotificationsCount() > 0">
+            <i class="fas fa-bell"></i>
+            @if (getUnreadNotificationsCount() > 0) {
+              <span class="notification-badge">{{ getUnreadNotificationsCount() }}</span>
+            }
+          </button>
+
+          @if (showNotifications) {
+            <div class="notification-dropdown">
+              <div class="notification-header">
+                <h3><i class="fas fa-bell"></i> Notificaciones</h3>
+                <span class="notification-count">{{ getAllNotifications().length }} alertas</span>
+              </div>
+              <div class="notification-list">
+                @if (getAllNotifications().length === 0) {
+                  <div class="notification-empty">
+                    <i class="fas fa-check-circle"></i>
+                    <p>¡Todo en orden!</p>
+                    <small>No hay alertas pendientes</small>
+                  </div>
+                }
+                @for (notif of getAllNotifications(); track notif.id) {
+                  <div class="notification-item" [class.notif-danger]="notif.type === 'danger'" [class.notif-warning]="notif.type === 'warning'">
+                    <div class="notif-icon">
+                      <i class="fas {{ notif.icon }}"></i>
+                    </div>
+                    <div class="notif-content">
+                      <strong>{{ notif.title }}</strong>
+                      <p>{{ notif.message }}</p>
+                    </div>
+                    <button class="notif-action" (click)="abrirModalProducto(getProductoById(notif.productId))">
+                      {{ notif.action }}
+                    </button>
+                  </div>
+                }
+              </div>
+              <div class="notification-footer">
+                <button class="btn-view-all" (click)="exportarReporteStockMinimo()">
+                  <i class="fas fa-file-excel"></i> Generar reporte de pedido
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <button class="logout-btn" (click)="volver()">
+          <i class="fas fa-arrow-left"></i>
+          <span>Volver al Dashboard</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-panel">
+    @if (isLoading) {
+      @for (i of [1,2,3,4,5,6]; track i) {
+        <div class="kpi-card skeleton-card">
+          <div class="skeleton-icon"></div>
+          <div class="kpi-content">
+            <div class="skeleton-line skeleton-label"></div>
+            <div class="skeleton-line skeleton-value"></div>
+          </div>
+        </div>
+      }
+    } @else {
+      <div class="kpi-card kpi-animate" style="--delay:0ms">
+        <div class="kpi-icon"><i class="fas fa-cubes"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Total Productos</span>
+          <strong class="kpi-value">{{ productos.length }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card kpi-animate" style="--delay:60ms">
+        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Stock Total</span>
+          <strong class="kpi-value">{{ getTotalStock() }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card warning kpi-animate" style="--delay:120ms">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Stock Bajo</span>
+          <strong class="kpi-value">{{ getStockBajoCount() }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card danger kpi-animate" style="--delay:180ms">
+        <div class="kpi-icon"><i class="fas fa-ban"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Agotados</span>
+          <strong class="kpi-value">{{ getproductosAgotados() }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card success kpi-animate" style="--delay:240ms">
+        <div class="kpi-icon"><i class="fas fa-dollar-sign"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Valor Inventario</span>
+          <strong class="kpi-value">RD$ {{ getValorInventario() | number:'1.0-0' }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card donation kpi-animate" style="--delay:300ms">
+        <div class="kpi-icon"><i class="fas fa-gift"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-label">Valor Donaciones</span>
+          <strong class="kpi-value">RD$ {{ getValorDonaciones() | number:'1.0-0' }}</strong>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Toolbar con filtro de tipo de producto -->
+  <div class="toolbar">
+    <div class="search-container" [class.search-active]="filtroBusqueda.length > 0">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" placeholder="Buscar por nombre, laboratorio o código..." [(ngModel)]="filtroBusqueda">
+      @if (filtroBusqueda.length > 0) {
+        <button class="search-clear" (click)="filtroBusqueda = ''" title="Limpiar búsqueda">
+          <i class="fas fa-times"></i>
+        </button>
+      }
+    </div>
+    
+    <select class="filter-dropdown" [(ngModel)]="filtroCategoria">
+      <option value="">Todas las categorías</option>
+      @for (cat of categorias; track cat) {
+        <option [value]="cat">{{ cat }}</option>
+      }
+    </select>
+
+    <!-- NUEVO: Filtro por tipo de producto (Donación/Venta/Exonerado) -->
+    <div class="type-filter">
+      @for (tipo of tiposProducto; track tipo.value) {
+        <button class="type-filter-btn" 
+                [class.active]="filtroTipoProducto === tipo.value"
+                [style.--btn-color]="tipo.color"
+                (click)="filtroTipoProducto = tipo.value">
+          <i class="fas {{ tipo.icon }}"></i>
+          <span>{{ tipo.label }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="view-toggle">
+      <button class="view-btn" [class.active]="viewMode === 'table'" (click)="toggleViewMode('table')">
+        <i class="fas fa-table"></i> <span>Tabla</span>
+      </button>
+      <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="toggleViewMode('grid')">
+        <i class="fas fa-th-large"></i> <span>Mosaicos</span>
+      </button>
+    </div>
+    
+    <button class="btn-outline" (click)="exportarExcel()" [disabled]="isLoading">
+      <i class="fas fa-file-excel"></i> Exportar
+    </button>
+    <button class="btn-primary" (click)="abrirModalProducto()">
+      <i class="fas fa-plus"></i> Nuevo Producto
+    </button>
+  </div>
+
+  <!-- Resultados de búsqueda chip -->
+  @if (filtroBusqueda.length > 0 || filtroCategoria.length > 0 || filtroTipoProducto !== 'todos') {
+    <div class="search-results-info">
+      <span>{{ getProductosFiltrados().length }} resultado(s) encontrado(s)</span>
+      @if (filtroCategoria) {
+        <span class="filter-chip">
+          {{ filtroCategoria }}
+          <button (click)="filtroCategoria = ''"><i class="fas fa-times"></i></button>
+        </span>
+      }
+      @if (filtroTipoProducto !== 'todos') {
+        <span class="filter-chip type-chip">
+          <i class="fas {{ tiposProducto.find(t => t.value === filtroTipoProducto)?.icon }}"></i>
+          {{ tiposProducto.find(t => t.value === filtroTipoProducto)?.label }}
+          <button (click)="filtroTipoProducto = 'todos'"><i class="fas fa-times"></i></button>
+        </span>
+      }
+      @if (filtroBusqueda) {
+        <span class="filter-chip">
+          Buscar: "{{ filtroBusqueda }}"
+          <button (click)="filtroBusqueda = ''"><i class="fas fa-times"></i></button>
+        </span>
+      }
+    </div>
+  }
+
+  <!-- VISTA TABLA -->
+  @if (viewMode === 'table') {
+    <div class="table-container">
+      @if (isLoading) {
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th style="width:60px"></th>
+              <th>Producto</th>
+              <th>Código de Barras</th>
+              <th>Stock</th>
+              <th>Precio (RD$)</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th style="width:180px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of [1,2,3,4,5]; track i) {
+              <tr class="skeleton-row">
+                <td><div class="skeleton skeleton-thumb"></div></td>
+                <td><div class="skeleton skeleton-text-lg"></div><div class="skeleton skeleton-text-sm"></div></td>
+                <td><div class="skeleton skeleton-text-md"></div></td>
+                <td><div class="skeleton skeleton-text-md" style="margin:auto"></div></td>
+                <td><div class="skeleton skeleton-text-md"></div></td>
+                <td><div class="skeleton skeleton-badge"></div></td>
+                <td><div class="skeleton skeleton-badge"></div></td>
+                <td><div class="skeleton skeleton-actions"></div></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th style="width:60px"></th>
+              <th>Producto</th>
+              <th>Código de Barras</th>
+              <th>Stock</th>
+              <th>Precio (RD$)</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th style="width:180px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (producto of getProductosFiltrados(); track producto.id; let i = $index) {
+              <tr
+                class="table-row-animate"
+                [style.--row-delay]="(i * 30) + 'ms'"
+                [class.row-warning]="producto.stock > 0 && producto.stock <= producto.stockMinimo"
+                [class.row-danger]="producto.stock === 0"
+                [class.row-donation]="producto.tipoRegistro === 'donacion'"
+                [class.row-exonerated]="producto.tipoRegistro === 'exonerado'"
+              >
+                <td class="image-cell">
+                  @if (producto.imagenBase64) {
+                    <img [src]="producto.imagenBase64" class="product-thumb" [alt]="producto.nombre">
+                  } @else {
+                    <div class="thumb-placeholder"><i class="fas fa-capsules"></i></div>
+                  }
+                </td>
+                <td class="product-cell">
+                  <strong>{{ producto.nombre }}</strong>
+                  <small>{{ producto.laboratorio || 'Sin laboratorio' }}</small>
+                  @if (producto.donante && producto.tipoRegistro !== 'venta') {
+                    <small class="donante-badge"><i class="fas fa-hand-holding-heart"></i> {{ producto.donante }}</small>
+                  }
+                </td>
+                <td class="barcode-cell">{{ formatBarcode(producto.codigoBarras) }}</td>
+                <td class="stock-cell">
+                  <div class="stock-control-group" [class.stock-updating]="isStockUpdating(producto.id)">
+                    <button class="stock-btn stock-minus" (click)="actualizarStock(producto, -1)" [disabled]="isStockUpdating(producto.id)">−</button>
+                    <span class="stock-number" [class.text-warning]="producto.stock <= producto.stockMinimo && producto.stock > 0" [class.text-danger]="producto.stock === 0">
+                      {{ producto.stock }}
+                    </span>
+                    <button class="stock-btn stock-plus" (click)="actualizarStock(producto, 1)" [disabled]="isStockUpdating(producto.id)">+</button>
+                  </div>
+                  <span class="stock-unit">{{ producto.unidad }}</span>
+                </td>
+                <td class="price-cell">
+                  @if (producto.tipoRegistro === 'donacion') {
+                    <span class="price-donation">Donación</span>
+                    <small class="original-price">RD$ {{ producto.precioOriginal | number:'1.2-2' }}</small>
+                  } @else {
+                    RD$ {{ producto.precio | number:'1.2-2' }}
+                  }
+                </td>
+                <td class="type-cell">
+                  @if (producto.tipoRegistro === 'venta') {
+                    <span class="type-badge type-sale"><i class="fas fa-tag"></i> Venta</span>
+                  } @else if (producto.tipoRegistro === 'donacion') {
+                    <span class="type-badge type-donation"><i class="fas fa-gift"></i> Donación</span>
+                  } @else {
+                    <span class="type-badge type-exonerated"><i class="fas fa-hand-holding-heart"></i> Exonerado</span>
+                  }
+                </td>
+                <td class="status-cell">
+                  @if (producto.stock === 0) {
+                    <span class="status-badge status-out">Agotado</span>
+                  } @else if (producto.stock <= producto.stockMinimo) {
+                    <span class="status-badge status-low">Stock Bajo</span>
+                  } @else {
+                    <span class="status-badge status-ok">Normal</span>
+                  }
+                </td>
+                <td class="actions-cell">
+                  <button class="action-btn action-edit" (click)="abrirModalProducto(producto)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn action-exonerar" (click)="abrirModalExonerar(producto)" title="Exonerar/Donar" [disabled]="producto.stock === 0">
+                    <i class="fas fa-hand-holding-heart"></i>
+                  </button>
+                  <button class="action-btn action-print" (click)="abrirModalImprimirCodigos(producto)" title="Imprimir etiquetas">
+                    <i class="fas fa-print"></i>
+                  </button>
+                  <button class="action-btn action-delete" (click)="eliminarProducto(producto)" title="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (getProductosFiltrados().length === 0 && !isLoading) {
+          <div class="empty-inventory">
+            <i class="fas fa-box-open"></i>
+            <p>No hay productos registrados con los filtros seleccionados</p>
+            <button class="btn-primary" (click)="filtroTipoProducto = 'todos'; filtroCategoria = ''; filtroBusqueda = ''">Limpiar filtros</button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- VISTA MOSAICOS -->
+  @if (viewMode === 'grid') {
+    <div class="products-grid">
+      @if (isLoading) {
+        @for (i of [1,2,3,4,5,6]; track i) {
+          <div class="product-card skeleton-card-grid">
+            <div class="skeleton skeleton-card-img"></div>
+            <div style="padding:16px">
+              <div class="skeleton skeleton-text-lg"></div>
+              <div class="skeleton skeleton-text-sm" style="margin-top:8px"></div>
+              <div class="skeleton skeleton-text-md" style="margin-top:12px"></div>
+            </div>
+          </div>
+        }
+      } @else {
+        @for (producto of getProductosFiltrados(); track producto.id; let i = $index) {
+          <div class="product-card card-animate"
+            [style.--card-delay]="(i * 40) + 'ms'"
+            [class.card-warning]="producto.stock > 0 && producto.stock <= producto.stockMinimo"
+            [class.card-danger]="producto.stock === 0"
+            [class.card-donation]="producto.tipoRegistro === 'donacion'"
+            [class.card-exonerated]="producto.tipoRegistro === 'exonerado'"
+          >
+            <div class="card-badge">
+              @if (producto.stock === 0) {
+                <span class="badge-agotado">AGOTADO</span>
+              } @else if (producto.stock <= producto.stockMinimo) {
+                <span class="badge-bajo">STOCK BAJO</span>
+              }
+              @if (producto.tipoRegistro !== 'venta') {
+                <span class="badge-type" [class.badge-donation]="producto.tipoRegistro === 'donacion'" [class.badge-exonerated]="producto.tipoRegistro === 'exonerado'">
+                  @if (producto.tipoRegistro === 'donacion') { <i class="fas fa-gift"></i> DONACIÓN }
+                  @else { <i class="fas fa-hand-holding-heart"></i> EXONERADO }
+                </span>
+              }
+            </div>
+            <div class="card-image">
+              @if (producto.imagenBase64) {
+                <img [src]="producto.imagenBase64" [alt]="producto.nombre">
+              } @else {
+                <div class="image-placeholder"><i class="fas fa-capsules"></i></div>
+              }
+            </div>
+            <div class="card-body">
+              <h3 class="product-title">{{ producto.nombre }}</h3>
+              <div class="product-lab"><i class="fas fa-flask"></i> {{ producto.laboratorio || 'Sin laboratorio' }}</div>
+              @if (producto.donante && producto.tipoRegistro !== 'venta') {
+                <div class="product-donante"><i class="fas fa-hand-holding-heart"></i> {{ producto.donante }}</div>
+              }
+              <div class="product-barcode"><i class="fas fa-barcode"></i> {{ formatBarcode(producto.codigoBarras) }}</div>
+              <div class="product-stock">
+                <div class="stock-value" [class.stock-warning]="producto.stock <= producto.stockMinimo && producto.stock > 0" [class.stock-danger]="producto.stock === 0">
+                  <i class="fas fa-boxes"></i> {{ producto.stock }} {{ producto.unidad }}
+                </div>
+                <div class="stock-min">Mínimo: {{ producto.stockMinimo }}</div>
+              </div>
+              <div class="product-price">
+                @if (producto.tipoRegistro === 'donacion') {
+                  <span class="price-donation-grid">Donación</span>
+                  <small>Valor: RD$ {{ producto.precioOriginal | number:'1.2-2' }}</small>
+                } @else {
+                  <i class="fas fa-tag"></i> RD$ {{ producto.precio | number:'1.2-2' }}
+                }
+              </div>
+              @if (producto.fechaVencimiento) {
+                <div class="product-expiry" [class.expiry-warning]="getDaysUntilExpiry(producto.fechaVencimiento) <= 30">
+                  <i class="fas fa-calendar-alt"></i> Vence: {{ producto.fechaVencimiento | date:'dd/MM/yyyy' }}
+                </div>
+              }
+            </div>
+            <div class="card-footer">
+              <div class="stock-controls" [class.stock-updating]="isStockUpdating(producto.id)">
+                <button class="stock-mini stock-mini-minus" (click)="actualizarStock(producto, -1)" [disabled]="isStockUpdating(producto.id)">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <span class="stock-quick">{{ producto.stock }}</span>
+                <button class="stock-mini stock-mini-plus" (click)="actualizarStock(producto, 1)" [disabled]="isStockUpdating(producto.id)">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <div class="card-actions">
+                <button class="card-action edit" (click)="abrirModalProducto(producto)" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="card-action exonerar" (click)="abrirModalExonerar(producto)" title="Exonerar/Donar" [disabled]="producto.stock === 0"><i class="fas fa-hand-holding-heart"></i></button>
+                <button class="card-action print" (click)="abrirModalImprimirCodigos(producto)" title="Imprimir etiquetas"><i class="fas fa-print"></i></button>
+                <button class="card-action delete" (click)="eliminarProducto(producto)" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+              </div>
+            </div>
+          </div>
+        }
+        @if (getProductosFiltrados().length === 0 && !isLoading) {
+          <div class="empty-inventory full-width">
+            <i class="fas fa-box-open"></i>
+            <p>No hay productos registrados con los filtros seleccionados</p>
+            <button class="btn-primary" (click)="filtroTipoProducto = 'todos'; filtroCategoria = ''; filtroBusqueda = ''">Limpiar filtros</button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- MODAL: Producto (Crear/Editar) CON OPCIÓN DE TIPO -->
+  @if (showProductModal) {
+    <div class="modal-backdrop" (click)="cerrarModalProducto()">
+      <div class="modal-window modal-animate" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <h3><i class="fas {{ isEditing ? 'fa-pencil-alt' : 'fa-box-open' }}"></i> {{ isEditing ? 'Editar Producto' : 'Registrar Nuevo Producto' }}</h3>
+          <button class="modal-close" (click)="cerrarModalProducto()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field full-width">
+            <label>Nombre del producto *</label>
+            <input type="text" [(ngModel)]="nuevoProducto.nombre" placeholder="Ej: Paracetamol 500mg" autofocus>
+          </div>
+          
+          <!-- NUEVO: Selección de tipo de producto -->
+          <div class="form-field full-width">
+            <label>Tipo de producto</label>
+            <div class="type-selector">
+              <label class="type-option" [class.selected]="nuevoProducto.tipoRegistro === 'venta'">
+                <input type="radio" value="venta" [(ngModel)]="nuevoProducto.tipoRegistro" name="tipoRegistro">
+                <i class="fas fa-tag"></i>
+                <span>Venta</span>
+                <small>Producto comercial</small>
+              </label>
+              <label class="type-option" [class.selected]="nuevoProducto.tipoRegistro === 'donacion'">
+                <input type="radio" value="donacion" [(ngModel)]="nuevoProducto.tipoRegistro" name="tipoRegistro">
+                <i class="fas fa-gift"></i>
+                <span>Donación</span>
+                <small>Recibido sin costo</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Categoría</label>
+              <select [(ngModel)]="nuevoProducto.categoria">
+                <option value="">Seleccionar categoría</option>
+                @for (cat of categorias; track cat) {
+                  <option [value]="cat">{{ cat }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Laboratorio</label>
+              <input type="text" [(ngModel)]="nuevoProducto.laboratorio" placeholder="Ej: Genfar">
+            </div>
+          </div>
+
+          <!-- Donante (solo para donaciones) -->
+          @if (nuevoProducto.tipoRegistro === 'donacion') {
+            <div class="form-row">
+              <div class="form-field">
+                <label><i class="fas fa-hand-holding-heart"></i> Donante / Institución *</label>
+                <input type="text" [(ngModel)]="nuevoProducto.donante" placeholder="Ej: Cruz Roja, Ministerio Salud, Donación anónima">
+              </div>
+              <div class="form-field">
+                <label><i class="fas fa-chart-line"></i> Valor comercial estimado (RD$)</label>
+                <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precio" placeholder="0.00">
+                <small>Para efectos de valor del inventario</small>
+              </div>
+            </div>
+          } @else {
+            <div class="form-row">
+              <div class="form-field">
+                <label>Unidad de medida</label>
+                <select [(ngModel)]="nuevoProducto.unidad">
+                  @for (uni of unidades; track uni) {
+                    <option [value]="uni">{{ uni }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Precio unitario (RD$)</label>
+                <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precio" placeholder="0.00">
+                <small>Precio en pesos dominicanos</small>
+              </div>
+            </div>
+          }
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Stock inicial</label>
+              <input type="number" [(ngModel)]="nuevoProducto.stock" min="0">
+            </div>
+            <div class="form-field">
+              <label>Stock mínimo (alerta)</label>
+              <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" min="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Fecha de vencimiento</label>
+              <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento">
+            </div>
+            <div class="form-field">
+              <label>Imagen del producto</label>
+              <input type="file" accept="image/*" (change)="onImageSelected($event)" #fileInput style="display:none">
+              <button type="button" class="btn-secondary" (click)="fileInput.click()">
+                <i class="fas fa-cloud-upload-alt"></i> Subir imagen (máx. 2MB)
+              </button>
+            </div>
+          </div>
+
+          <!-- Nota interna -->
+          <div class="form-field full-width">
+            <label><i class="fas fa-sticky-note"></i> Nota interna (opcional)</label>
+            <textarea [(ngModel)]="nuevoProducto.notaInterna" rows="2" placeholder="Información adicional sobre el producto..."></textarea>
+          </div>
+
+          @if (imagenPreview) {
+            <div class="image-preview-area">
+              <img [src]="imagenPreview" alt="Vista previa">
+              <button class="remove-preview" (click)="imagenPreview = null; nuevoProducto.imagenBase64 = ''">×</button>
+            </div>
+          }
+        </div>
+        <div class="modal-foot">
+          <button class="btn-secondary" (click)="cerrarModalProducto()" [disabled]="isSaving">Cancelar</button>
+          <button class="btn-primary btn-saving" (click)="guardarProducto()" [disabled]="isSaving">
+            @if (isSaving) {
+              <span class="spinner"></span>
+              <span>Guardando…</span>
+            } @else {
+              <i class="fas fa-save"></i>
+              <span>{{ isEditing ? 'Actualizar Producto' : 'Guardar Producto' }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Exoneración/Donación de productos existentes -->
+  @if (showExonerarModal && productoParaExonerar) {
+    <div class="modal-backdrop" (click)="cerrarModalExonerar()">
+      <div class="modal-window modal-small modal-animate" (click)="$event.stopPropagation()">
+        <div class="modal-head" style="background: linear-gradient(135deg, #dc2626, #9b2c2c); color: white;">
+          <h3><i class="fas fa-hand-holding-heart"></i> Exonerar / Donar Producto</h3>
+          <button class="modal-close" style="color: white;" (click)="cerrarModalExonerar()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div class="print-product-info" style="background: #fef2f2;">
+              <strong style="font-size: 16px;">{{ productoParaExonerar.nombre }}</strong>
+              <span>Stock disponible: {{ productoParaExonerar.stock }} {{ productoParaExonerar.unidad }}</span>
+              <span>Precio: RD$ {{ productoParaExonerar.precio | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label><i class="fas fa-boxes"></i> Cantidad a exonerar *</label>
+            <input type="number" [(ngModel)]="datosExoneracion.cantidad" min="1" [max]="productoParaExonerar.stock" step="1">
+            <small>Máximo {{ productoParaExonerar.stock }} {{ productoParaExonerar.unidad }}</small>
+          </div>
+
+          <div class="form-field">
+            <label><i class="fas fa-hand-holding-heart"></i> Donante / Beneficiario *</label>
+            <input type="text" [(ngModel)]="datosExoneracion.donante" placeholder="Ej: Fundación X, Paciente, Hospital...">
+          </div>
+
+          <div class="form-field">
+            <label><i class="fas fa-calendar-alt"></i> Fecha de exoneración</label>
+            <input type="date" [(ngModel)]="datosExoneracion.fechaDonacion">
+          </div>
+
+          <div class="form-field">
+            <label><i class="fas fa-sticky-note"></i> Nota / Justificación</label>
+            <textarea [(ngModel)]="datosExoneracion.nota" rows="2" placeholder="Motivo de la exoneración, observaciones..."></textarea>
+          </div>
+
+          <div class="exoneracion-summary">
+            <p><strong>Resumen de la operación:</strong></p>
+            <ul>
+              <li>Producto: {{ productoParaExonerar.nombre }}</li>
+              <li>Cantidad: {{ datosExoneracion.cantidad }} {{ productoParaExonerar.unidad }}</li>
+              <li>Valor unitario: RD$ {{ productoParaExonerar.precio | number:'1.2-2' }}</li>
+              <li><strong>Valor total exonerado: RD$ {{ (productoParaExonerar.precio * datosExoneracion.cantidad) | number:'1.2-2' }}</strong></li>
+              <li>Donante: {{ datosExoneracion.donante || '(por especificar)' }}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-secondary" (click)="cerrarModalExonerar()" [disabled]="isSaving">Cancelar</button>
+          <button class="btn-primary" style="background: linear-gradient(135deg, #dc2626, #9b2c2c);" (click)="exonerarProductos()" [disabled]="isSaving">
+            @if (isSaving) {
+              <span class="spinner"></span>
+              <span>Procesando...</span>
+            } @else {
+              <i class="fas fa-hand-holding-heart"></i>
+              <span>Confirmar Exoneración</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Imprimir etiquetas -->
+  @if (showPrintModal && productoParaCodigos) {
+    <div class="modal-backdrop" (click)="cerrarModalImprimir()">
+      <div class="modal-window modal-small modal-animate" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <h3><i class="fas fa-print"></i> Imprimir Etiquetas</h3>
+          <button class="modal-close" (click)="cerrarModalImprimir()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="print-product-info">
+            <strong>{{ productoParaCodigos.nombre }}</strong>
+            <span>Código: {{ formatBarcode(productoParaCodigos.codigoBarras) }}</span>
+            <span>Precio: RD$ {{ productoParaCodigos.precio | number:'1.2-2' }}</span>
+          </div>
+          <div class="form-field">
+            <label>Cantidad de etiquetas</label>
+            <input type="number" [(ngModel)]="cantidadCodigos" min="1" max="100">
+            <small>Se generarán {{ cantidadCodigos }} etiquetas de 3.8cm × 2.5cm</small>
+          </div>
+          <div class="labels-preview">
+            @for (idx of getPreviewIndexes(); track idx) {
+              <div class="label-preview">
+                <div class="barcode-preview"></div>
+                <span>{{ formatBarcode(productoParaCodigos.codigoBarras) }}</span>
+                <span class="preview-price">RD$ {{ productoParaCodigos.precio | number:'1.2-2' }}</span>
+              </div>
+            }
+            <p class="preview-message">* Vista previa de {{ cantidadCodigos > 4 ? 4 : cantidadCodigos }} de {{ cantidadCodigos }} etiquetas</p>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-secondary" (click)="cerrarModalImprimir()">Cancelar</button>
+          <button class="btn-primary" (click)="generarCodigosParaImpresion()">
+            <i class="fas fa-print"></i> Imprimir {{ cantidadCodigos }} etiquetas
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

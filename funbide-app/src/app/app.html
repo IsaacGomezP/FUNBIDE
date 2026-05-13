@@ -1,0 +1,100 @@
+@if (isTvRoute) {
+  <div class="tv-page">
+    <iframe
+      class="tv-iframe"
+      [src]="tvUrl"
+      title="Pantalla de Turnos"
+      loading="eager"
+      referrerpolicy="no-referrer"
+    ></iframe>
+  </div>
+}
+
+<!-- PANTALLA DE LOGIN - Usa el componente -->
+@if (!isTvRoute && view === 'login') {
+  <app-login-screen
+    [username]="username"
+    [password]="password"
+    [errorMessage]="loginError"
+    [isLoading]="isLoading"
+    (usernameChange)="username = $event"
+    (passwordChange)="password = $event"
+    (rememberMeChange)="onRememberMeChange($event)"
+    (submitLogin)="signIn()"
+  />
+}
+
+<!-- DASHBOARD -->
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && !selectedModule) {
+  <app-dashboard
+    [userName]="currentUser.nombre_completo"
+    [userRole]="currentUser.rol"
+    [modules]="visibleModules"
+    (selectModule)="onSelectModule($event)"
+    (logout)="signOut()"
+  />
+}
+
+<!-- FARMACIA - CON EL USUARIO LOGEADO -->
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'farmacia') {
+  <app-modulo-farmacia 
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()" 
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'generarTurno') {
+  <app-modulo-generar-turno
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'caja') {
+  <app-modulo-caja
+    [usuarioNombre]="currentUser.nombre_completo"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'medicina') {
+  <app-modulo-medicina
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'laboratorio') {
+  <app-modulo-laboratorio
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'reportes') {
+  <app-modulo-reportes
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'mantenimiento') {
+  <app-modulo-mantenimiento
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'supervision') {
+  <app-modulo-supervision
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}

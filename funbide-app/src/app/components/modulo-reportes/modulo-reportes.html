@@ -1,0 +1,162 @@
+<div class="workspace-shell">
+  <header class="module-header">
+    <div>
+      <span class="eyebrow">FUNBIDE</span>
+      <h1>Reportes y estadísticas</h1>
+      <p>Visión completa de turnos, caja, expedientes, laboratorio y farmacia.</p>
+    </div>
+    <div class="header-actions">
+      <div class="range-switch">
+        <button [class.active]="rango === 'hoy'" (click)="cambiarRango('hoy')">Hoy</button>
+        <button [class.active]="rango === 'semana'" (click)="cambiarRango('semana')">7 días</button>
+        <button [class.active]="rango === 'mes'" (click)="cambiarRango('mes')">30 días</button>
+      </div>
+      <button class="back-btn" (click)="volver()">
+        <i class="fas fa-arrow-left"></i>
+        <span>Volver</span>
+      </button>
+    </div>
+  </header>
+
+  @if (loading) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <strong>Cargando reportes...</strong>
+    </div>
+  } @else if (error) {
+    <div class="error-state">
+      <strong>{{ error }}</strong>
+      <button (click)="cargarReportes()">Reintentar</button>
+    </div>
+  } @else {
+    <section class="kpi-grid">
+      @for (kpi of kpis; track kpi.label) {
+        <article class="kpi-card" [attr.data-tone]="kpi.tone">
+          <div class="kpi-icon">
+            <i class="fas" [ngClass]="kpi.icon"></i>
+          </div>
+          <div class="kpi-copy">
+            <span>{{ kpi.label }}</span>
+            <strong>{{ kpi.value }}</strong>
+            <small>{{ kpi.hint }}</small>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section class="reports-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Estados de turnos</h2>
+          <span>Distribución operativa</span>
+        </div>
+        @if (barraEstados.length === 0) {
+          <div class="empty-inline">Sin datos para este rango.</div>
+        } @else {
+          <div class="chart-list">
+            @let maxEstado = maxSerie(barraEstados);
+            @for (item of barraEstados; track item.label) {
+              <div class="chart-row">
+                <div class="chart-label">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+                <div class="chart-track">
+                  <div class="chart-fill" [style.width]="barraWidth(item.value, maxEstado)" [style.background]="item.color"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Top áreas</h2>
+          <span>Más activas</span>
+        </div>
+        @if (barraAreas.length === 0) {
+          <div class="empty-inline">Sin datos para este rango.</div>
+        } @else {
+          <div class="chart-list">
+            @let maxArea = maxSerie(barraAreas);
+            @for (item of barraAreas; track item.label) {
+              <div class="chart-row">
+                <div class="chart-label">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+                <div class="chart-track">
+                  <div class="chart-fill" [style.width]="barraWidth(item.value, maxArea)" [style.background]="item.color"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="panel panel-wide">
+        <div class="panel-head">
+          <h2>Servicios más usados</h2>
+          <span>Ranking general</span>
+        </div>
+        @if (barraServicios.length === 0) {
+          <div class="empty-inline">Sin datos para este rango.</div>
+        } @else {
+          <div class="chart-list">
+            @let maxServicio = maxSerie(barraServicios);
+            @for (item of barraServicios; track item.label) {
+              <div class="chart-row">
+                <div class="chart-label">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+                <div class="chart-track">
+                  <div class="chart-fill" [style.width]="barraWidth(item.value, maxServicio)" [style.background]="item.color"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+    </section>
+
+    <section class="reports-grid bottom-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Indicadores operativos</h2>
+          <span>Resumen de actividad</span>
+        </div>
+        <div class="mini-table">
+          @for (row of tablaActividades; track row.label) {
+            <div class="mini-row">
+              <div>
+                <strong>{{ row.label }}</strong>
+                <small>{{ row.meta }}</small>
+              </div>
+              <span>{{ row.value }}</span>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Top por volumen</h2>
+          <span>Servicios / categorías</span>
+        </div>
+        <div class="mini-table">
+          @for (row of tablaTopAreas; track row.label) {
+            <div class="mini-row">
+              <div>
+                <strong>{{ row.label }}</strong>
+                <small>{{ row.meta }}</small>
+              </div>
+              <span>{{ row.value }}</span>
+            </div>
+          }
+        </div>
+      </article>
+    </section>
+  }
+</div>
