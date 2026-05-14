@@ -61,6 +61,7 @@ export class ModuloGenerarTurnoComponent {
   servicios: ServicioTurno[] = [
     { id: 'psicologia', nombre: 'Psicología', categoria: 'Consulta', prefijo: 'PS', icono: 'fa-brain', descripcion: 'Apoyo emocional y evaluación' },
     { id: 'medicina', nombre: 'Medicina General', categoria: 'Consulta', prefijo: 'MG', icono: 'fa-stethoscope', descripcion: 'Consulta médica general' },
+    { id: 'ginecologia', nombre: 'Ginecología', categoria: 'Consulta', prefijo: 'GI', icono: 'fa-venus', descripcion: 'Atención ginecológica y control integral' },
     { id: 'sonografia', nombre: 'Sonografía', categoria: 'Imagen', prefijo: 'SO', icono: 'fa-wave-square', descripcion: 'Estudios de imagen' },
     { id: 'laboratorio', nombre: 'Laboratorio', categoria: 'Apoyo', prefijo: 'LA', icono: 'fa-vial', descripcion: 'Toma y análisis de muestras' },
     { id: 'procedimientos', nombre: 'Procedimientos', categoria: 'Apoyo', prefijo: 'PR', icono: 'fa-notes-medical', descripcion: 'Atenciones y procedimientos' },

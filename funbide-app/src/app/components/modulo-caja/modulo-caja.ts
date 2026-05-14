@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CobrosDbService } from '../../services/cobros-db.service';
@@ -53,6 +53,17 @@ interface Notificacion {
   message: string;
 }
 
+interface ReciboCobro {
+  codigoTicket: string;
+  servicioNombre: string;
+  total: number;
+  metodoPago: MetodoPago;
+  montoRecibido: number | null;
+  cambio: number;
+  referenciaPago: string;
+  fecha: string;
+}
+
 @Component({
   selector: 'app-modulo-caja',
   standalone: true,
@@ -82,6 +93,7 @@ export class ModuloCajaComponent implements OnInit {
   notificacion: Notificacion | null = null;
   areaDestinoMensaje = '';
   mensajePacienteCobro: string | null = null;
+  reciboUltimoCobro: ReciboCobro | null = null;
 
   ticketCobro: TicketCobro = this.crearTicketCobro();
 
@@ -118,6 +130,7 @@ export class ModuloCajaComponent implements OnInit {
     this.busquedaServicio = '';
     this.areaDestinoMensaje = '';
     this.mensajePacienteCobro = null;
+    this.reciboUltimoCobro = null;
     this.ticketCobro = this.crearTicketCobro();
   }
 
@@ -312,13 +325,13 @@ export class ModuloCajaComponent implements OnInit {
       this.ticketSeleccionado.estado = 'atendiendo';
       this.mostrarNotificacion(
         'success',
-        'Atención iniciada',
-        `El paciente del turno ${this.ticketSeleccionado.codigo} está siendo atendido. Proceda con el cobro.`
+        'AtenciÃ³n iniciada',
+        `El paciente del turno ${this.ticketSeleccionado.codigo} estÃ¡ siendo atendido. Proceda con el cobro.`
       );
       this.cdr.detectChanges();
     } catch (error) {
-      console.error('Error iniciando atención:', error);
-      this.mostrarNotificacion('error', 'Error', 'No se pudo iniciar la atención.');
+      console.error('Error iniciando atenciÃ³n:', error);
+      this.mostrarNotificacion('error', 'Error', 'No se pudo iniciar la atenciÃ³n.');
     }
   }
 
@@ -363,7 +376,7 @@ export class ModuloCajaComponent implements OnInit {
     }
 
     if (this.ticketCobro.metodoPago === 'senasa' && !this.ticketCobro.seguroNumero.trim()) {
-      this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el número de afiliación del seguro.');
+      this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el nÃºmero de afiliaciÃ³n del seguro.');
       return;
     }
 
@@ -378,7 +391,7 @@ export class ModuloCajaComponent implements OnInit {
       }
 
       const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-      const areaDestino = servicio?.area_destino || this.ticketSeleccionado.areaDestino || 'Área correspondiente';
+      const areaDestino = servicio?.area_destino || this.ticketSeleccionado.areaDestino || 'Ãrea correspondiente';
 
       await this.turnosDbService.actualizarTurnoEstado(this.ticketSeleccionado.id, {
         estado: 'finalizado',
@@ -461,11 +474,21 @@ export class ModuloCajaComponent implements OnInit {
 
       this.totalPagadosHoy += 1;
       this.ultimoCobroTicketCodigo = this.ticketSeleccionado.codigo;
+      this.reciboUltimoCobro = {
+        codigoTicket: this.ticketSeleccionado.codigo,
+        servicioNombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
+        total,
+        metodoPago: this.ticketCobro.metodoPago,
+        montoRecibido: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.montoRecibido : null,
+        cambio: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.cambio : 0,
+        referenciaPago: this.ticketCobro.referenciaPago,
+        fecha: new Date().toISOString()
+      };
 
       const textoPago =
         this.ticketCobro.metodoPago === 'senasa'
           ? `Turno ${this.ticketSeleccionado.codigo} registrado con SENASA. Queda pendiente por cobrar a la aseguradora.`
-          : `Turno ${this.ticketSeleccionado.codigo} pagado. Diríjase a ${areaDestino} para continuar con su atención.`;
+          : `Turno ${this.ticketSeleccionado.codigo} pagado. DirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.mostrarNotificacion('success', 'Pago exitoso', textoPago);
 
@@ -476,9 +499,10 @@ export class ModuloCajaComponent implements OnInit {
             )}\n\nSENASA: cuenta registrada como pendiente de cobro a la aseguradora.`
           : `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
               2
-            )}\n\nINDICACIÓN PARA EL PACIENTE:\nDiríjase a ${areaDestino} para continuar con su atención.`;
+            )}\n\nINDICACIÃ“N PARA EL PACIENTE:\nDirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.pasoActual = 3;
+      this.imprimirComprobante();
       this.ticketSeleccionado = null;
       this.ticketCobro = this.crearTicketCobro();
       await this.cargarTicketsPendientes();
@@ -492,88 +516,52 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   imprimirComprobante() {
-    const ticketCodigo = this.ultimoCobroTicketCodigo || this.ticketSeleccionado?.codigo;
-    if (!ticketCodigo) {
+    const recibo = this.reciboUltimoCobro;
+    if (!recibo) {
       this.mostrarNotificacion('error', 'Error', 'No hay información para imprimir.');
       return;
     }
-
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-    const servicioNombre = servicio?.nombre ?? this.ticketSeleccionado?.servicioNombre ?? 'Servicio';
-    const total = this.totalCobroActual;
-    const metodo = this.ticketCobro.metodoPago.toUpperCase();
-    const codigoServicio = servicio?.codigo || '-';
-    const areaDestino = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'Área correspondiente';
-    const subtotal = total;
-    const impuesto = 0;
-    const totalNeto = subtotal + impuesto;
 
     const html = `
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Comprobante ${ticketCodigo}</title>
+          <title>Comprobante ${recibo.codigoTicket}</title>
           <style>
             *{box-sizing:border-box}
-            body{font-family:Arial,sans-serif;padding:18px;background:#fff;color:#111}
-            .box{max-width:420px;margin:0 auto;border:1px solid #111;padding:16px}
-            .header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}
+            @page{size:58mm auto;margin:0}
+            body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+            .ticket{width:58mm;max-width:58mm;padding:6mm 4mm 4mm}
+            .center{text-align:center}
             .brand{font-size:18px;font-weight:900;letter-spacing:1px}
-            .eslogan{font-size:11px;margin-top:4px}
-            .meta{font-size:11px;line-height:1.5;margin-top:8px}
-            .title{font-size:15px;font-weight:800;text-align:center;margin:14px 0 10px}
-            .code{font-size:28px;font-weight:900;text-align:center;margin:8px 0 12px}
-            .row{display:flex;justify-content:space-between;gap:10px;margin:6px 0;font-size:12px}
-            .row strong{max-width:58%;text-align:right}
-            .divider{border-top:1px dashed #111;margin:12px 0}
-            .total{font-size:16px;font-weight:900;text-align:right}
-            .footer{margin-top:14px;font-size:10px;line-height:1.5;text-align:center}
-            .highlight{background:#f0fdf4;padding:10px;border-radius:8px;margin:10px 0;text-align:center;border:1px solid #10b981}
+            .company{font-size:11px;line-height:1.35;margin-top:4px}
+            .title{font-size:13px;font-weight:700;margin:10px 0 8px;text-align:center;border-top:1px dashed #111;border-bottom:1px dashed #111;padding:6px 0}
+            .line{display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.45;margin:2px 0}
+            .line strong{max-width:60%;text-align:right;word-break:break-word}
+            .divider{border-top:1px dashed #111;margin:8px 0}
+            .total{font-size:14px;font-weight:900;text-align:right;margin-top:4px}
+            .footer{font-size:10px;text-align:center;line-height:1.4;margin-top:8px}
           </style>
         </head>
         <body>
-          <div class="box">
-            <div class="header">
-              <div class="brand">FUNDACION BIENESTAR Y DESARROLLO, INC</div>
-              <div class="eslogan">AYUDANOS A AYUDAR</div>
-              <div class="meta">
+          <div class="ticket">
+            <div class="center">
+              <div class="brand">FUNBIDE</div>
+              <div class="company">
                 RNC: 430090387<br/>
-                Calle Guaroa No. 4, Invivienda, Santo Domingo Este<br/>
-                Tel: 809-869-3445 / 809-245-8339<br/>
-                Email: FUNBIDE2009@HOTMAIL.COM
+                FUNBIDE20009@hotmail.com
               </div>
             </div>
-            <div class="title">COMPROBANTE DE PAGO</div>
-            <div class="code">${ticketCodigo}</div>
-            <div class="row"><span>Fecha</span><strong>${new Date().toLocaleString('es-DO')}</strong></div>
-            <div class="row"><span>Servicio</span><strong>${servicioNombre}</strong></div>
-            <div class="row"><span>Código servicio</span><strong>${codigoServicio}</strong></div>
-            <div class="row"><span>Método de pago</span><strong>${metodo}</strong></div>
+            <div class="title">RECIBO DE PAGO</div>
+            <div class="line"><span>Ticket</span><strong>${recibo.codigoTicket}</strong></div>
+            <div class="line"><span>Fecha</span><strong>${new Date(recibo.fecha).toLocaleString('es-DO')}</strong></div>
+            <div class="line"><span>Servicio</span><strong>${recibo.servicioNombre}</strong></div>
+            <div class="line"><span>Pago</span><strong>${recibo.metodoPago.toUpperCase()}</strong></div>
             <div class="divider"></div>
-            <div class="row"><span>Subtotal</span><strong>RD$ ${subtotal.toFixed(2)}</strong></div>
-            <div class="row"><span>Impuestos</span><strong>RD$ ${impuesto.toFixed(2)}</strong></div>
-            <div class="row"><span>Total</span><strong>RD$ ${totalNeto.toFixed(2)}</strong></div>
-            ${
-              this.ticketCobro.metodoPago === 'efectivo'
-                ? `<div class="row"><span>Recibido</span><strong>RD$ ${(this.ticketCobro.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="row"><span>Cambio</span><strong>RD$ ${this.ticketCobro.cambio.toFixed(2)}</strong></div>`
-                : ''
-            }
-            ${
-              this.ticketCobro.metodoPago === 'senasa'
-                ? `<div class="row"><span>Seguro</span><strong>${this.ticketCobro.seguroNombre || 'SENASA'}</strong></div><div class="row"><span>Afiliación</span><strong>${this.ticketCobro.seguroNumero}</strong></div>`
-                : ''
-            }
-            ${
-              this.ticketCobro.metodoPago === 'transferencia'
-                ? `<div class="row"><span>Referencia</span><strong>${this.ticketCobro.referenciaPago || '-'}</strong></div>`
-                : ''
-            }
-            <div class="divider"></div>
-            <div class="highlight">
-              <strong>DIRÍJASE A:</strong><br/>
-              ${areaDestino}
-            </div>
+            <div class="line"><span>Precio servicio</span><strong>RD$ ${recibo.total.toFixed(2)}</strong></div>
+            ${recibo.metodoPago === 'efectivo' ? `<div class="line"><span>Recibido</span><strong>RD$ ${(recibo.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="line"><span>Cambio</span><strong>RD$ ${recibo.cambio.toFixed(2)}</strong></div>` : ''}
+            ${recibo.metodoPago === 'transferencia' ? `<div class="line"><span>Referencia</span><strong>${recibo.referenciaPago || '-'}</strong></div>` : ''}
             <div class="total">PAGADO</div>
             <div class="footer">Gracias por preferir FUNBIDE.</div>
           </div>
@@ -592,7 +580,7 @@ export class ModuloCajaComponent implements OnInit {
   enviarAlArea() {
     if (!this.ultimoCobroTicketCodigo) return;
 
-    const area = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'área correspondiente';
+    const area = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'Ã¡rea correspondiente';
     this.mostrarNotificacion('success', 'Paciente enviado', `El turno ${this.ultimoCobroTicketCodigo} fue enviado a ${area}.`);
 
     this.ultimoCobroTicketCodigo = '';
@@ -614,3 +602,4 @@ export class ModuloCajaComponent implements OnInit {
     }, 4000);
   }
 }
+
