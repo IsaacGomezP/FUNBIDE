@@ -109,4 +109,32 @@ export class TurnosDbService {
     if (error) throw error;
     return data as TurnoDb;
   }
+
+  async actualizarTurno(
+    id: string,
+    cambios: Partial<Pick<
+      TurnoDb,
+      | 'estado'
+      | 'puesto_atencion'
+      | 'fecha_llamado'
+      | 'fecha_atencion'
+      | 'paciente_cedula'
+      | 'paciente_nombre'
+      | 'paciente_edad'
+      | 'paciente_fecha_nacimiento'
+      | 'servicio_id'
+      | 'servicio_nombre'
+      | 'categoria'
+    >>
+  ) {
+    const { data, error } = await this.client
+      .from('turnos')
+      .update(cambios)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as TurnoDb;
+  }
 }

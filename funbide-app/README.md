@@ -1,10 +1,93 @@
 # FUNBIDE App
 
-Aplicación web en Angular para la gestión de turnos, caja, medicina, farmacia y pantalla TV de llamados.
+Sistema web desarrollado en Angular para la gestión integral de operaciones clínicas y administrativas, incluyendo generación de turnos, caja, atención médica, laboratorio, farmacia, reportes, supervisión, mantenimiento y pantalla TV de llamados.
 
-El sistema está organizado por módulos y usa Supabase como backend principal para almacenar y consultar los datos reales.
+La solución está conectada a Supabase como backend principal para autenticación, almacenamiento y consulta de datos operativos.
 
-## Stack Tecnológico
+## Propósito del proyecto
+
+Este sistema fue diseñado para centralizar el flujo de atención de una institución, reduciendo tiempos manuales, mejorando el control de pacientes, asegurando trazabilidad de cobros y permitiendo una operación más ordenada entre las distintas áreas.
+
+## Alcance funcional
+
+El proyecto incluye los siguientes componentes:
+
+- Autenticación y control de acceso por rol.
+- Dashboard principal de navegación.
+- Módulo de generación de turnos.
+- Módulo de caja y cobro.
+- Módulo médico.
+- Módulo de laboratorio.
+- Módulo de farmacia.
+- Módulo de reportes.
+- Módulo de supervisión.
+- Módulo de mantenimiento.
+- Pantalla pública de turnos en TV.
+
+## Módulos del sistema
+
+### 1. Autenticación
+
+Permite el inicio de sesión de usuarios y la validación de credenciales, con persistencia de sesión y carga de módulos según el rol asignado.
+
+### 2. Dashboard
+
+Pantalla central desde la cual el usuario accede a los módulos permitidos según su perfil.
+
+### 3. Generación de Turnos
+
+Módulo para registrar pacientes y emitir turnos de atención, organizando la fila de trabajo desde el primer punto de contacto.
+
+### 4. Caja
+
+Gestiona la recepción del turno, el proceso de cobro, la validación de pagos y el envío del paciente al área correspondiente.
+
+### 5. Medicina
+
+Área destinada a la atención clínica, consulta de pacientes y seguimiento del proceso de atención.
+
+### 6. Laboratorio
+
+Módulo orientado al control de análisis clínicos, gestión de resultados y seguimiento operativo de pruebas.
+
+### 7. Farmacia
+
+Permite administrar inventario, productos, existencias y movimientos relacionados con la dispensación de medicamentos.
+
+### 8. Reportes
+
+Espacio para consultar información consolidada, métricas y análisis operativos del sistema.
+
+### 9. Supervisión
+
+Módulo para monitoreo general de la operación, seguimiento del personal y control del flujo de trabajo.
+
+### 10. Mantenimiento
+
+Sección para administración del sistema, usuarios, roles y parámetros internos de operación.
+
+### 11. Pantalla TV
+
+Pantalla pública para mostrar turnos llamados y facilitar la visualización del flujo de atención sin exponer información sensible.
+
+## Roles de usuario
+
+El sistema contempla control de acceso por perfil, permitiendo mostrar únicamente los módulos autorizados para cada usuario.
+
+Roles identificados en el proyecto:
+
+- Administrador
+- Cajero
+- Farmacia
+- Médico
+- Medicina General
+- Psicología
+- Laboratorio
+- Reportes
+- Supervisión
+- Mantenimiento
+
+## Arquitectura tecnológica
 
 - Angular 21
 - TypeScript
@@ -15,16 +98,13 @@ El sistema está organizado por módulos y usa Supabase como backend principal p
 - xlsx
 - Vitest
 
-## Estructura de Directorios
+## Estructura general del proyecto
 
 ```text
 funbide-app/
 ├── angular.json
 ├── package.json
 ├── README.md
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.spec.json
 ├── src/
 │   ├── main.ts
 │   ├── index.html
@@ -35,370 +115,91 @@ funbide-app/
 │       ├── app.css
 │       ├── app.config.ts
 │       ├── config/
-│       │   └── supabase.config.ts
 │       ├── services/
-│       │   ├── supabase.service.ts
-│       │   ├── supabase.ts
-│       │   ├── auth.service.ts
-│       │   ├── auth.ts
-│       │   ├── turnos-db.service.ts
-│       │   ├── servicios-precios-db.service.ts
-│       │   ├── cobros-db.service.ts
-│       │   ├── pacientes-db.service.ts
-│       │   ├── farmacia-db.service.ts
-│       │   └── farmacia-storage.service.ts
 │       └── components/
-│           ├── login-screen/
-│           ├── dashboard/
-│           ├── modulo-generarTurno/
-│           ├── modulo-caja/
-│           ├── modulo-medicina/
-│           ├── modulo-farmacia/
-│           └── tv/
 ├── public/
-│   ├── favicon.ico
 │   ├── FUNBIDE LOGO.png
 │   └── tv/
-│       ├── index.html
-│       ├── css/tv.css
-│       └── js/tv.js
 └── supabase/
-    └── seed_servicios_precios.sql
 ```
 
-## Arquitectura Funcional
-
-### 1. Autenticación
-
-Responsable del inicio de sesión y validación de usuarios.
-
-Archivos:
-
-- `src/app/services/auth.service.ts`
-- `src/app/services/auth.ts`
-- `src/app/components/login-screen/`
-
-### 2. Dashboard
-
-Pantalla principal de navegación y resumen.
-
-Archivos:
-
-- `src/app/components/dashboard/dashboard.ts`
-- `src/app/components/dashboard/dashboard.html`
-- `src/app/components/dashboard/dashboard.css`
-
-### 3. Generación de Turnos
-
-Emite el turno inicial del paciente.
-
-Archivos:
-
-- `src/app/components/modulo-generarTurno/modulo-generarTurno.ts`
-- `src/app/components/modulo-generarTurno/modulo-generarTurno.html`
-- `src/app/components/modulo-generarTurno/modulo-generarTurno.css`
-
-### 4. Módulo de Caja
-
-Gestiona:
-
-- cola de tickets
-- llamado a caja
-- cobro
-- comprobante
-- envío al médico
-- control de pagos duplicados
-
-Archivos:
-
-- `src/app/components/modulo-caja/modulo-caja.ts`
-- `src/app/components/modulo-caja/modulo-caja.html`
-- `src/app/components/modulo-caja/modulo-caja.css`
-
-### 5. Módulo Médico
-
-Pantalla de atención médica.
-
-Archivos:
-
-- `src/app/components/modulo-medicina/modulo-medicina.ts`
-- `src/app/components/modulo-medicina/modulo-medicina.html`
-- `src/app/components/modulo-medicina/modulo-medicina.css`
-
-### 6. Módulo Farmacia
-
-Gestión de productos e inventario.
-
-Archivos:
-
-- `src/app/components/modulo-farmacia/modulo-farmacia.ts`
-- `src/app/components/modulo-farmacia/modulo-farmacia.html`
-- `src/app/components/modulo-farmacia/modulo-farmacia.css`
-
-### 7. Pantalla TV
-
-Pantalla pública para mostrar turnos llamados.
-
-Archivos:
-
-- `public/tv/index.html`
-- `public/tv/css/tv.css`
-- `public/tv/js/tv.js`
-- `src/app/components/tv/index.html`
-- `src/app/components/tv/css/tv.css`
-- `src/app/components/tv/js/tv.js`
-
-## Servicios de Datos
-
-### SupabaseService
-
-Archivo:
-
-- `src/app/services/supabase.service.ts`
-
-Responsable de crear y exponer el cliente Supabase.
-
-### TurnosDbService
-
-Archivo:
-
-- `src/app/services/turnos-db.service.ts`
-
-Funciones principales:
-
-- crear turnos
-- listar turnos en espera
-- listar turnos activos
-- actualizar estado del turno
-
-### ServiciosPreciosDbService
-
-Archivo:
-
-- `src/app/services/servicios-precios-db.service.ts`
-
-Funciones principales:
-
-- listar servicios activos
-- consultar catálogo de precios y áreas
-
-### CobrosDbService
-
-Archivo:
-
-- `src/app/services/cobros-db.service.ts`
-
-Funciones principales:
-
-- crear cobros
-- buscar cobros por turno
-- evitar cobros duplicados
-
-### PacientesDbService
-
-Archivo:
-
-- `src/app/services/pacientes-db.service.ts`
-
-Funciones principales:
-
-- buscar paciente por cédula usando turnos previos
-
-### FarmaciaDbService
-
-Archivo:
-
-- `src/app/services/farmacia-db.service.ts`
-
-Funciones principales:
-
-- listar productos
-- crear productos
-- actualizar productos
-- eliminar productos
-
-## Modelo de Datos
-
-### Tabla `turnos`
-
-Usada para gestionar la cola y el estado del paciente.
-
-Campos observados:
-
-- `id`
-- `codigo`
-- `prefijo`
-- `numero`
-- `servicio_id`
-- `servicio_nombre`
-- `categoria`
-- `paciente_cedula`
-- `paciente_nombre`
-- `paciente_edad`
-- `paciente_fecha_nacimiento`
-- `estado`
-- `puesto_atencion`
-- `fecha_creado`
-- `fecha_llamado`
-- `fecha_atencion`
-
-Estados:
-
-- `espera`
-- `llamando`
-- `atendiendo`
-- `finalizado`
-- `cancelado`
-
-### Tabla `cobros`
-
-Usada para registrar el pago del ticket.
-
-Campos observados:
-
-- `id`
-- `turno_id`
-- `codigo_ticket`
-- `paciente_nombre`
-- `paciente_cedula`
-- `servicio_nombre`
-- `servicio_id`
-- `monto_servicio`
-- `metodo_pago`
-- `monto_recibido`
-- `cambio`
-- `referencia_pago`
-- `seguro_nombre`
-- `seguro_numero`
-- `area_destino`
-- `estado`
-- `cajero`
-- `created_at`
-- `updated_at`
-
-Estados:
-
-- `pendiente`
-- `pagado`
-- `rechazado`
-
-### Tabla `servicios_precios`
-
-Catálogo de servicios y precios.
-
-Campos observados:
-
-- `id`
-- `codigo`
-- `nombre`
-- `area_destino`
-- `categoria`
-- `precio`
-- `activo`
-- `created_at`
-- `updated_at`
-
-### Tabla `productos_farmacia`
-
-Inventario de farmacia.
-
-Campos observados:
-
-- `id`
-- `nombre`
-- `categoria`
-- `laboratorio`
-- `precio`
-- `stock`
-- `stock_minimo`
-- `unidad`
-- `codigo_barras`
-- `fecha_vencimiento`
-- `imagen_base64`
-- `created_at`
-
-### Tabla `usuarios`
-
-Usada para autenticación.
-
-Campos observados:
-
-- `id`
-- `username`
-- `email`
-- `nombre_completo`
-- `rol`
-- `activo`
-- `password`
-
-## Tabla Recomendada: `expedientes`
-
-Esta tabla todavía conviene agregarla para cerrar el flujo clínico entre caja y medicina.
-
-Propósito:
-
-- guardar el expediente generado después del cobro
-- asignar médico exacto
-- pasar la atención al módulo médico
-- registrar evolución y estado final
-
-Campos sugeridos:
-
-- `id`
-- `turno_id`
-- `cobro_id`
-- `codigo_ticket`
-- `paciente_nombre`
-- `paciente_cedula`
-- `servicio_nombre`
-- `servicio_id`
-- `medico_destino`
-- `area_destino`
-- `observaciones`
-- `estado`
-- `creado_por`
-- `atendido_por`
-- `fecha_enviado`
-- `fecha_atendido`
-- `created_at`
-- `updated_at`
-
-Estados sugeridos:
-
-- `pendiente`
-- `enviado`
-- `atendido`
-- `cancelado`
-
-## Flujo de Atención
-
-1. Se genera el turno.
-2. El paciente espera en TV.
-3. Caja llama el turno.
-4. El paciente pasa a caja.
-5. Se cobra el servicio real.
-6. Se emite comprobante.
-7. Se crea el expediente.
-8. Caja asigna el médico exacto.
-9. El expediente llega al módulo médico.
-10. El médico atiende y completa el expediente.
-11. El turno deja de mostrarse en TV una vez cobrado.
-
-## Flujo de Visibilidad en TV
-
-La TV debe mostrar únicamente turnos en estado `llamando`.
-
-No debe mostrar:
-
-- `atendiendo`
-- `pagado`
-- destino real del paciente
-
-Texto recomendado:
-
-- `Turno PS-001. Favor pasar a atención.`
-
-## Archivos de Entrada
+## Componentes principales
+
+### Componentes de interfaz
+
+- `login-screen`
+- `dashboard`
+- `modulo-generarTurno`
+- `modulo-caja`
+- `modulo-medicina`
+- `modulo-laboratorio`
+- `modulo-farmacia`
+- `modulo-reportes`
+- `modulo-supervision`
+- `modulo-mantenimiento`
+- `tv`
+
+### Servicios de aplicación
+
+- `supabase.service.ts`
+- `supabase.ts`
+- `auth.service.ts`
+- `auth.ts`
+- `turnos-db.service.ts`
+- `servicios-precios-db.service.ts`
+- `cobros-db.service.ts`
+- `pacientes-db.service.ts`
+- `farmacia-db.service.ts`
+- `farmacia-storage.service.ts`
+- `expedientes-medicos-db.service.ts`
+- `expedientes-laboratorio-db.service.ts`
+
+## Base de datos y persistencia
+
+El proyecto trabaja con Supabase y utiliza tablas y scripts de soporte para la operación del sistema.
+
+### Entidades principales
+
+- `usuarios`
+- `turnos`
+- `cobros`
+- `servicios_precios`
+- `productos_farmacia`
+- `pacientes`
+- `expedientes`
+
+### Scripts incluidos
+
+- `supabase/seed_usuarios.sql`
+- `supabase/seed_servicios_precios.sql`
+- `supabase/policies_usuarios.sql`
+- `supabase/pacientes.sql`
+- `supabase/pacientes_alter_add_contacto.sql`
+- `supabase/expedientes_laboratorio.sql`
+- `supabase/ajuste_tablas_clinicas.sql`
+
+## Flujo operativo general
+
+1. El usuario inicia sesión según su rol.
+2. El sistema muestra únicamente los módulos autorizados.
+3. Se genera el turno del paciente.
+4. El turno aparece en la pantalla TV.
+5. Caja llama y procesa el pago.
+6. El sistema registra el cobro y la trazabilidad del servicio.
+7. El paciente es enviado al área correspondiente.
+8. Medicina, laboratorio o farmacia continúan la atención según corresponda.
+9. Supervisión y reportes permiten seguimiento de la operación.
+10. Mantenimiento administra usuarios, permisos y ajustes internos.
+
+## Control de acceso
+
+La aplicación implementa visibilidad de módulos por perfil, con reglas que limitan el acceso a las funciones según el rol del usuario autenticado.
+
+## Pantalla pública TV
+
+La pantalla TV está orientada a anunciar llamados de turnos de forma clara y visible, apoyando la atención al público sin exponer datos innecesarios.
+
+## Archivos relevantes de entrada
 
 - `src/main.ts`
 - `src/index.html`
@@ -408,23 +209,18 @@ Texto recomendado:
 - `src/app/app.css`
 - `src/app/app.config.ts`
 
-## Recursos Públicos
+## Valor del proyecto
 
-- `public/FUNBIDE LOGO.png`
-- `public/tv/`
-- `public/favicon.ico`
+Este sistema representa una solución administrativa y clínica integral que permite:
 
-## Seed de Base de Datos
+- orden en la gestión de pacientes
+- mejor control de caja
+- trazabilidad de cobros
+- apoyo a consulta médica
+- control de inventario en farmacia
+- seguimiento operativo mediante reportes y supervisión
+- centralización de procesos en una sola plataforma
 
-Archivo:
+## Observación
 
-- `supabase/seed_servicios_precios.sql`
-
-Este archivo contiene la carga inicial del catálogo de servicios y precios.
-
-## Notas Finales
-
-- El módulo de caja ya está conectado a datos reales de Supabase.
-- El módulo de medicina todavía debe integrarse por completo con expedientes reales.
-- La TV ya está pensada para privacidad del paciente.
-- La tabla `expedientes` es el siguiente paso lógico para cerrar el flujo clínico.
+El proyecto fue estructurado para crecer por módulos, permitiendo incorporar nuevas funcionalidades sin alterar la base principal de operación.

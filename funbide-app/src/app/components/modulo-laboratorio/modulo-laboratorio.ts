@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CobrosDbService } from '../../services/cobros-db.service';
 import { ExpedientesLaboratorioDbService, ExpedienteLaboratorioDb, ResultadoLaboratorioDb } from '../../services/expedientes-laboratorio-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 interface FileCard {
   id: string;
@@ -325,9 +326,6 @@ export class ModuloLaboratorioComponent implements OnInit {
       return;
     }
 
-    const win = window.open('', '_blank');
-    if (!win) return;
-
     const html = `
       <html>
         <head>
@@ -363,13 +361,11 @@ export class ModuloLaboratorioComponent implements OnInit {
             </table>
             <div class="block"><strong>Conclusión:</strong> ${this.archivoForm.conclusion || '-'}</div>
           </div>
-          <script>window.print();setTimeout(()=>window.close(),400);</script>
         </body>
       </html>
     `;
 
-    win.document.write(html);
-    win.document.close();
+    printHtmlInHiddenFrame(html);
   }
 
   volver() {

@@ -1,0 +1,129 @@
+<div class="workspace-shell">
+  <header class="module-header">
+    <div>
+      <span class="eyebrow">Cierre de caja</span>
+      <h1>Cuadre diario</h1>
+      <p>Resumen operativo y cierre de jornada para supervisión.</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="ghost-btn" (click)="cargarResumen()">
+        <i class="fas fa-rotate"></i>
+        <span>Actualizar</span>
+      </button>
+      <button class="back-btn" (click)="volver()">
+        <i class="fas fa-arrow-left"></i>
+        <span>Volver</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="info-strip">
+    <div class="info-card">
+      <span>Fecha</span>
+      <strong>{{ horaActual | date:'dd/MM/yyyy' }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Estado</span>
+      <strong>{{ jornadaCerrada ? 'Cerrada' : (esHoraCierre ? 'Cierre programado' : 'Abierta') }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Hora</span>
+      <strong>{{ horaActual | date:'h:mm a' }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Acceso</span>
+      <strong>{{ usuarioRol }}</strong>
+    </div>
+  </section>
+
+  <div class="toast" *ngIf="toast" [class.success]="toastType === 'success'" [class.warning]="toastType === 'warning'" [class.danger]="toastType === 'danger'">
+    {{ toast }}
+  </div>
+
+  <section class="workspace-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Resumen general</h2>
+        <span>{{ resumen?.fecha || (horaActual | date:'yyyy-MM-dd') }}</span>
+      </div>
+
+      @if (loading) {
+        <div class="empty-state">Cargando cuadre...</div>
+      } @else if (!resumen) {
+        <div class="empty-state">No hay datos disponibles.</div>
+      } @else {
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span>Turnos</span>
+            <strong>{{ resumen.total_turnos }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>Cobros</span>
+            <strong>{{ resumen.total_cobros }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>Ingresos</span>
+            <strong>RD$ {{ totalIngresos | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>Pendiente SENASA</span>
+            <strong>RD$ {{ resumen.total_pendiente_senasa | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="split-grid">
+          <div class="panel-sub">
+            <h3>Movimientos del día</h3>
+            <div class="mini-table">
+              <div class="mini-row"><strong>Efectivo</strong><span>RD$ {{ resumen.total_efectivo | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>Tarjeta</strong><span>RD$ {{ resumen.total_tarjeta | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>Transferencia</strong><span>RD$ {{ resumen.total_transferencia | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>SENASA</strong><span>RD$ {{ resumen.total_senasa | number:'1.2-2' }}</span></div>
+            </div>
+          </div>
+
+          <div class="panel-sub">
+            <h3>Estado de turnos</h3>
+            <div class="mini-table">
+              <div class="mini-row"><strong>En espera</strong><span>{{ resumen.turnos_espera }}</span></div>
+              <div class="mini-row"><strong>Llamando</strong><span>{{ resumen.turnos_llamando }}</span></div>
+              <div class="mini-row"><strong>Atendiendo</strong><span>{{ resumen.turnos_atendiendo }}</span></div>
+              <div class="mini-row"><strong>Finalizados</strong><span>{{ resumen.turnos_finalizados }}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Observaciones del cierre</label>
+          <textarea [(ngModel)]="observaciones" rows="3" placeholder="Notas para el cierre del día"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-btn" (click)="cerrarJornada()" [disabled]="guardando || jornadaCerrada">
+            <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-lock'"></i>
+            <span>{{ jornadaCerrada ? 'Jornada cerrada' : (guardando ? 'Cerrando...' : 'Cerrar jornada') }}</span>
+          </button>
+          <button class="secondary-btn" (click)="cargarResumen()" [disabled]="guardando">
+            <i class="fas fa-arrows-rotate"></i>
+            <span>Recalcular</span>
+          </button>
+        </div>
+
+        @if (resumen.jornada_cerrada) {
+          <div class="empty-state success-state">
+            <i class="fas fa-lock"></i>
+            <strong>Jornada cerrada</strong>
+            <span>Hora de cierre: {{ resumen.hora_cierre ? (resumen.hora_cierre | date:'h:mm a') : 'No disponible' }}</span>
+          </div>
+        } @else if (esHoraCierre) {
+          <div class="empty-state warning-state">
+            <i class="fas fa-clock"></i>
+            <strong>Cierre automático pendiente</strong>
+            <span>Al llegar las 9:00 PM el sistema registrará el cierre de jornada.</span>
+          </div>
+        }
+      }
+    </article>
+  </section>
+</div>

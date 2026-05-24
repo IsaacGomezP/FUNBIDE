@@ -1,0 +1,160 @@
+<div class="workspace-shell">
+  <header class="module-header">
+    <div>
+      <span class="eyebrow">Catálogo clínico</span>
+      <h1>Gestor de precios</h1>
+      <p>Controla servicios, precios base, cobertura de seguro y carga masiva desde Excel.</p>
+    </div>
+
+    <div class="header-actions">
+      <label class="upload-btn">
+        <i class="fas fa-file-excel"></i>
+        <span>{{ importando ? 'Importando...' : 'Importar Excel' }}</span>
+        <input type="file" accept=".xlsx,.xls" (change)="onArchivoSeleccionado($event)" [disabled]="importando" />
+      </label>
+      <button class="ghost-btn" (click)="nuevoServicio()">
+        <i class="fas fa-plus"></i>
+        <span>Nuevo servicio</span>
+      </button>
+      <button class="back-btn" (click)="volver()">
+        <i class="fas fa-arrow-left"></i>
+        <span>Volver</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="info-strip">
+    <div class="info-card">
+      <span>Total servicios</span>
+      <strong>{{ resumen.total }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Activos</span>
+      <strong>{{ resumen.activos }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Con seguro</span>
+      <strong>{{ resumen.conSeguro }}</strong>
+    </div>
+    <div class="info-card">
+      <span>Sin seguro</span>
+      <strong>{{ resumen.sinSeguro }}</strong>
+    </div>
+  </section>
+
+  <div class="toast" *ngIf="toast" [class.success]="toastType === 'success'" [class.warning]="toastType === 'warning'" [class.danger]="toastType === 'danger'">
+    {{ toast }}
+  </div>
+
+  <section class="workspace-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <h2>{{ modoEdicion ? 'Editar servicio' : 'Crear servicio' }}</h2>
+        <span>{{ usuarioRol }}</span>
+      </div>
+
+      <div class="grid-form">
+        <div class="field">
+          <label>Código</label>
+          <input type="text" [(ngModel)]="formulario.codigo" placeholder="LAB001">
+        </div>
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" [(ngModel)]="formulario.nombre" placeholder="Consulta medicina general">
+        </div>
+        <div class="field">
+          <label>Área destino</label>
+          <input type="text" [(ngModel)]="formulario.area_destino" placeholder="Medicina General">
+        </div>
+        <div class="field">
+          <label>Categoría</label>
+          <input type="text" [(ngModel)]="formulario.categoria" placeholder="Consulta">
+        </div>
+        <div class="field">
+          <label>Precio base</label>
+          <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio">
+        </div>
+        <div class="field">
+          <label>Seguro aplica</label>
+          <select [(ngModel)]="formulario.aplica_seguro">
+            <option [ngValue]="true">Sí aplica seguro</option>
+            <option [ngValue]="false">No aplica seguro</option>
+          </select>
+        </div>
+        <div class="field" [class.disabled]="!formulario.aplica_seguro">
+          <label>Precio subsidiado</label>
+          <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_subsidiado" [disabled]="!formulario.aplica_seguro">
+        </div>
+        <div class="field" [class.disabled]="!formulario.aplica_seguro">
+          <label>Precio contributivo</label>
+          <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_contributivo" [disabled]="!formulario.aplica_seguro">
+        </div>
+        <div class="field" [class.disabled]="!formulario.aplica_seguro">
+          <label>Precio ARS Renacer</label>
+          <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_renacer" [disabled]="!formulario.aplica_seguro">
+        </div>
+      </div>
+
+      <label class="switch">
+        <input type="checkbox" [(ngModel)]="formulario.activo">
+        <span>Servicio activo</span>
+      </label>
+
+      <div class="form-actions">
+        <button class="primary-btn" (click)="guardarServicio()" [disabled]="guardando">
+          <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+          <span>{{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar' : 'Crear servicio') }}</span>
+        </button>
+        <button class="secondary-btn" (click)="nuevoServicio()">
+          <i class="fas fa-eraser"></i>
+          <span>Limpiar</span>
+        </button>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Listado de servicios</h2>
+        <span>{{ serviciosFiltrados.length }} encontrados</span>
+      </div>
+
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" [(ngModel)]="filtro" placeholder="Buscar por código, nombre, categoría o precio">
+      </div>
+
+      @if (loading) {
+        <div class="empty-state">Cargando servicios...</div>
+      } @else if (serviciosFiltrados.length === 0) {
+        <div class="empty-state">No hay servicios que coincidan con el filtro.</div>
+      } @else {
+        <div class="service-list">
+          @for (servicio of serviciosFiltrados; track servicio.id) {
+            <div class="service-row" [class.off]="!servicio.activo">
+              <div class="service-main">
+                <strong>{{ servicio.nombre }}</strong>
+                <span>{{ servicio.codigo }} · {{ servicio.categoria }}</span>
+                <small>{{ servicio.area_destino }}</small>
+                <div class="price-tags">
+                  <span>Base: RD$ {{ servicio.precio | number:'1.2-2' }}</span>
+                  @if (servicio.aplica_seguro) {
+                    <span>Subsidiado: RD$ {{ (servicio.precio_subsidiado ?? 0) | number:'1.2-2' }}</span>
+                    <span>Contributivo: RD$ {{ (servicio.precio_contributivo ?? 0) | number:'1.2-2' }}</span>
+                    <span>ARS Renacer: RD$ {{ (servicio.precio_renacer ?? 0) | number:'1.2-2' }}</span>
+                  } @else {
+                    <span class="no-insurance">No aplica seguro</span>
+                  }
+                </div>
+              </div>
+              <div class="service-actions">
+                <span class="badge" [class.off]="!servicio.activo">{{ servicio.activo ? 'Activo' : 'Inactivo' }}</span>
+                <button (click)="editarServicio(servicio)" title="Editar"><i class="fas fa-pen"></i></button>
+                <button (click)="eliminarServicio(servicio)" title="Eliminar"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </article>
+  </section>
+</div>

@@ -1,3 +1,10 @@
+@if (isKioskRoute) {
+  <app-modulo-generar-turno
+    [usuarioNombre]="'Caja Kiosko'"
+    [usuarioRol]="'Kiosko'"
+  />
+}
+
 @if (isTvRoute) {
   <div class="tv-page">
     <iframe
@@ -11,7 +18,7 @@
 }
 
 <!-- PANTALLA DE LOGIN - Usa el componente -->
-@if (!isTvRoute && view === 'login') {
+@if (!isTvRoute && !isKioskRoute && view === 'login') {
   <app-login-screen
     [username]="username"
     [password]="password"
@@ -25,7 +32,7 @@
 }
 
 <!-- DASHBOARD -->
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && !selectedModule) {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && !selectedModule) {
   <app-dashboard
     [userName]="currentUser.nombre_completo"
     [userRole]="currentUser.rol"
@@ -36,7 +43,7 @@
 }
 
 <!-- FARMACIA - CON EL USUARIO LOGEADO -->
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'farmacia') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'farmacia') {
   <app-modulo-farmacia 
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -44,7 +51,7 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'generarTurno') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'generarTurno') {
   <app-modulo-generar-turno
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -52,14 +59,30 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'caja') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'caja') {
   <app-modulo-caja
     [usuarioNombre]="currentUser.nombre_completo"
     (back)="volverAlDashboard()"
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'medicina') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'gestorPrecios') {
+  <app-modulo-gestor-precios
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'cuadre') {
+  <app-modulo-cuadre
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'medicina') {
   <app-modulo-medicina
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -67,7 +90,7 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'laboratorio') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'laboratorio') {
   <app-modulo-laboratorio
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -75,7 +98,7 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'reportes') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'reportes') {
   <app-modulo-reportes
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -83,7 +106,7 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'mantenimiento') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'mantenimiento') {
   <app-modulo-mantenimiento
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"
@@ -91,7 +114,7 @@
   />
 }
 
-@if (!isTvRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'supervision') {
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'supervision') {
   <app-modulo-supervision
     [usuarioNombre]="currentUser.nombre_completo"
     [usuarioRol]="currentUser.rol"

@@ -11,6 +11,8 @@ import { ModuloLaboratorioComponent } from './components/modulo-laboratorio/modu
 import { ModuloReportesComponent } from './components/modulo-reportes/modulo-reportes';
 import { ModuloMantenimientoComponent } from './components/modulo-mantenimiento/modulo-mantenimiento';
 import { ModuloSupervisionComponent } from './components/modulo-supervision/modulo-supervision';
+import { ModuloGestorPreciosComponent } from './components/modulo-gestor-precios/modulo-gestor-precios';
+import { ModuloCuadreComponent } from './components/modulo-cuadre/modulo-cuadre';
 import { AuthService } from './services/auth.service';
 
 export interface User {
@@ -36,13 +38,21 @@ export interface User {
     ModuloLaboratorioComponent,
     ModuloReportesComponent,
     ModuloMantenimientoComponent,
-    ModuloSupervisionComponent
+    ModuloSupervisionComponent,
+    ModuloGestorPreciosComponent,
+    ModuloCuadreComponent
   ],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
 export class App {
-  isTvRoute = window.location.pathname === '/tv' || window.location.pathname.startsWith('/tv/');
+  private readonly normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  isTvRoute = this.normalizedPathname === '/tv' || this.normalizedPathname.startsWith('/tv/');
+  isKioskRoute =
+    this.normalizedPathname === '/kiosko-turnos' ||
+    this.normalizedPathname === '/caja-kiosko' ||
+    new URLSearchParams(window.location.search).get('kiosk') === 'turnos' ||
+    new URLSearchParams(window.location.search).get('kiosk') === 'caja';
   view: 'login' | 'dashboard' = 'login';
   username = '';
   password = '';
@@ -57,8 +67,10 @@ export class App {
   readonly tvUrl = '/tv/index.html';
   private readonly sessionKey = 'funbide_session_user';
 
-  private readonly roleModules: Record<string, string> = {
+  private readonly roleModules: Record<string, string | null> = {
     Cajero: 'caja',
+    Kiosko: 'generarTurno',
+    'Gestor precios': 'gestorPrecios',
     Farmacia: 'farmacia',
     Medico: 'medicina',
     'Medicina General': 'medicina',
@@ -68,9 +80,10 @@ export class App {
     Laboratorio: 'laboratorio',
     Reportes: 'reportes',
     Mantenimiento: 'mantenimiento',
-    'Supervisión': 'supervision',
-    Supervision: 'supervision',
-    Administrador: 'mantenimiento'
+    Cuadre: 'cuadre',
+    'Supervisión': 'cuadre',
+    Supervision: 'cuadre',
+    Administrador: null
   };
 
   private readonly moduleCatalog: ModuleCard[] = [
@@ -78,6 +91,8 @@ export class App {
     { id: 'farmacia', name: 'Farmacia', icon: 'fa-capsules', description: 'Control de inventario y dispensación de medicamentos', color: 'linear-gradient(135deg, #9b59b6, #8e44ad)' },
     { id: 'generarTurno', name: 'Generar Turno', icon: 'fa-ticket-alt', description: 'Registro de paciente y emisión de ticket de atención', color: 'linear-gradient(135deg, #3498db, #2980b9)' },
     { id: 'caja', name: 'Caja', icon: 'fa-cash-register', description: 'Recepción de tickets, cobro y envío al área correspondiente', color: 'linear-gradient(135deg, #16a085, #0f766e)' },
+    { id: 'gestorPrecios', name: 'Gestor de precios', icon: 'fa-tags', description: 'Mantenimiento de tarifas, seguro y carga desde Excel', color: 'linear-gradient(135deg, #2563eb, #0ea5e9)' },
+    { id: 'cuadre', name: 'Cuadre diario', icon: 'fa-lock', description: 'Cierre de jornada y revisión de ingresos del día', color: 'linear-gradient(135deg, #0f766e, #115e59)' },
     { id: 'laboratorio', name: 'Laboratorio', icon: 'fa-microscope', description: 'Gestión de análisis clínicos y resultados', color: 'linear-gradient(135deg, #e67e22, #d35400)' },
     { id: 'reportes', name: 'Reportes', icon: 'fa-chart-bar', description: 'Estadísticas y análisis de datos', color: 'linear-gradient(135deg, #34495e, #2c3e50)' },
     { id: 'mantenimiento', name: 'Mantenimiento', icon: 'fa-user-shield', description: 'Gestión de usuarios, roles y accesos del sistema', color: 'linear-gradient(135deg, #0f172a, #1e293b)' },
@@ -102,10 +117,8 @@ export class App {
     const result = await this.authService.login(this.username.trim(), this.password.trim());
 
     if (result.success && result.user) {
+      const isKioskUser = this.isKioskUser(result.user.username, result.user.rol);
       this.isLoggedIn = true;
-      this.view = 'dashboard';
-      this.selectedModule = this.getDefaultModuleForRole(result.user.rol);
-      this.visibleModules = this.getVisibleModulesForRole(result.user.rol);
       this.currentUser = {
         id: result.user.id,
         username: result.user.username,
@@ -116,6 +129,19 @@ export class App {
       localStorage.setItem(this.sessionKey, JSON.stringify(this.currentUser));
       this.username = '';
       this.password = '';
+
+      if (isKioskUser) {
+        this.view = 'dashboard';
+        this.selectedModule = 'generarTurno';
+        this.visibleModules = this.moduleCatalog.filter(module => module.id === 'generarTurno');
+        this.cdr.detectChanges();
+        window.location.replace('/caja-kiosko?kiosk=caja');
+        return;
+      }
+
+      this.view = 'dashboard';
+      this.selectedModule = this.getDefaultModuleForRole(result.user.rol);
+      this.visibleModules = this.getVisibleModulesForRole(result.user.rol);
     } else {
       this.loginError = result.error || 'Usuario o contraseña incorrectos';
     }
@@ -148,6 +174,21 @@ export class App {
   }
 
   ngOnInit() {
+    if (this.isKioskRoute) {
+      this.isLoggedIn = true;
+      this.view = 'dashboard';
+      this.selectedModule = 'generarTurno';
+      this.visibleModules = this.moduleCatalog.filter(module => module.id === 'generarTurno');
+      this.currentUser = {
+        id: 0,
+        username: 'kiosko',
+        nombre_completo: 'Caja Kiosko',
+        rol: 'Kiosko',
+        activo: true
+      };
+      return;
+    }
+
     const savedSession = localStorage.getItem(this.sessionKey);
     if (savedSession) {
       try {
@@ -189,12 +230,22 @@ export class App {
   }
 
   private getVisibleModulesForRole(role: string): ModuleCard[] {
+    if (role === 'Caja / Kiosko') {
+      return this.moduleCatalog.filter(module => module.id === 'generarTurno');
+    }
+
+    if (role === 'Kiosko') {
+      return this.moduleCatalog.filter(module => module.id === 'generarTurno');
+    }
+
     if (role === 'Administrador') {
       return this.moduleCatalog;
     }
 
     const roleSpecific: Record<string, string[]> = {
-      Cajero: ['caja', 'generarTurno', 'reportes'],
+      Cajero: ['caja', 'reportes'],
+      Kiosko: ['generarTurno'],
+      'Gestor precios': ['gestorPrecios', 'reportes'],
       Farmacia: ['farmacia', 'reportes'],
       Medico: ['medicina', 'reportes'],
       'Medicina General': ['medicina', 'reportes'],
@@ -203,12 +254,19 @@ export class App {
       'Psicología': ['medicina', 'reportes'],
       Laboratorio: ['laboratorio', 'reportes'],
       Mantenimiento: ['mantenimiento', 'reportes'],
-      'Supervisión': ['supervision', 'reportes'],
-      Supervision: ['supervision', 'reportes']
+      'Supervisión': ['supervision', 'cuadre', 'reportes'],
+      Supervision: ['supervision', 'cuadre', 'reportes'],
+      Cuadre: ['cuadre', 'reportes']
     };
 
-    const allowed = new Set(roleSpecific[role] ?? ['medicina', 'farmacia', 'generarTurno', 'caja', 'laboratorio', 'reportes']);
+    const allowed = new Set(roleSpecific[role] ?? ['medicina', 'farmacia', 'caja', 'laboratorio', 'reportes']);
     return this.moduleCatalog.filter(module => allowed.has(module.id));
+  }
+
+  private isKioskUser(username: string, role: string): boolean {
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedRole = role.trim().toLowerCase().replace(/\s+/g, ' ');
+    return normalizedUsername === 'kiosko' || normalizedRole === 'kiosko' || normalizedRole === 'caja / kiosko';
   }
 }
 

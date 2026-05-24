@@ -38,11 +38,14 @@ export class ModuloMantenimientoComponent implements OnInit {
   rolesDisponibles = [
     'Administrador',
     'Cajero',
+    'Kiosko',
+    'Gestor precios',
     'Farmacia',
     'Medico',
     'Medicina General',
     'Laboratorio',
     'Reportes',
+    'Cuadre',
     'Supervisión'
   ];
 

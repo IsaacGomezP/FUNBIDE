@@ -17,12 +17,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #0e1d36 0%, #1a2d4a 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f6f9fd 100%);
+  border: 1px solid #e5eaf2;
   border-radius: 24px;
   padding: 20px 32px;
   margin-bottom: 24px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
 }
 
 .header-brand {
@@ -33,7 +34,8 @@
 
 .header-brand i {
   font-size: 40px;
-  background: rgba(255, 255, 255, 0.15);
+  background: #eff6ff;
+  color: #1d3973;
   padding: 15px;
   border-radius: 20px;
 }
@@ -48,30 +50,33 @@
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: 1px;
+  color: #64748b;
 }
 
 .header-brand p {
   margin: 8px 0 0;
-  opacity: 0.8;
+  opacity: 1;
   font-size: 14px;
+  color: #64748b;
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
+  background: #ffffff;
+  border: 1px solid #d9e2ee;
   padding: 12px 24px;
   border-radius: 40px;
-  color: white;
+  color: #1f2937;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #f8fafc;
   transform: translateY(-2px);
 }
 
@@ -681,6 +686,11 @@
 
 .notification.info {
   background: #3b82f6;
+  color: white;
+}
+
+.notification.warning {
+  background: #f59e0b;
   color: white;
 }
 

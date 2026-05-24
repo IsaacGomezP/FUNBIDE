@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
 import { FarmaciaStorageService } from '../../services/farmacia-storage.service';
 import { FarmaciaDbService } from '../../services/farmacia-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 export interface Producto {
   id: string;
@@ -742,14 +743,7 @@ export class ModuloFarmaciaComponent implements OnInit, OnDestroy {
   }
 
   imprimirEtiquetas() {
-    const win = window.open('', '_blank');
-    if (!win) {
-      this.pushToast('warning', 'Ventana bloqueada', 'Permita ventanas emergentes para imprimir');
-      return;
-    }
-    win.document.write(this.generarHTMLCodigos());
-    win.document.close();
-    win.print();
+    printHtmlInHiddenFrame(this.generarHTMLCodigos());
     this.cerrarModalImprimir();
   }
 

@@ -1,14 +1,17 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CobrosDbService } from '../../services/cobros-db.service';
 import { ExpedientesMedicosDbService } from '../../services/expedientes-medicos-db.service';
+import { PacientesDbService } from '../../services/pacientes-db.service';
 import { ServicioPrecioDb, ServiciosPreciosDbService } from '../../services/servicios-precios-db.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { TurnoDb, TurnosDbService } from '../../services/turnos-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 type Paso = 1 | 2 | 3;
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa';
+type PlanSeguro = 'subsidiado' | 'contributivo' | 'renacer' | '';
 
 interface TicketPendiente extends TurnoDb {
   monto: number;
@@ -23,11 +26,18 @@ interface TicketPendiente extends TurnoDb {
 interface TicketCobro {
   metodoPago: MetodoPago;
   servicioCobroId: string | null;
+  planSeguro: PlanSeguro;
   montoRecibido: number | null;
   referenciaPago: string;
   cambio: number;
   seguroNombre: string;
   seguroNumero: string;
+}
+
+interface DatosPacienteForm {
+  cedula: string;
+  nombre: string;
+  edad: number | null;
 }
 
 interface CuentaPorCobrarDb {
@@ -48,9 +58,20 @@ interface CuentaPorCobrarDb {
 }
 
 interface Notificacion {
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   title: string;
   message: string;
+}
+
+interface ReciboCobro {
+  codigoTicket: string;
+  servicioNombre: string;
+  total: number;
+  metodoPago: MetodoPago;
+  montoRecibido: number | null;
+  cambio: number;
+  referenciaPago: string;
+  fecha: string;
 }
 
 @Component({
@@ -82,6 +103,10 @@ export class ModuloCajaComponent implements OnInit {
   notificacion: Notificacion | null = null;
   areaDestinoMensaje = '';
   mensajePacienteCobro: string | null = null;
+  reciboUltimoCobro: ReciboCobro | null = null;
+  busquedaPacienteEnProceso = false;
+  pacienteEncontrado = false;
+  datosPaciente: DatosPacienteForm = this.crearDatosPaciente();
 
   ticketCobro: TicketCobro = this.crearTicketCobro();
 
@@ -90,6 +115,7 @@ export class ModuloCajaComponent implements OnInit {
     private serviciosPreciosDbService: ServiciosPreciosDbService,
     private cobrosDbService: CobrosDbService,
     private expedientesMedicosDbService: ExpedientesMedicosDbService,
+    private pacientesDbService: PacientesDbService,
     private supabaseService: SupabaseService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -103,11 +129,20 @@ export class ModuloCajaComponent implements OnInit {
     return {
       metodoPago: 'efectivo',
       servicioCobroId: null,
+      planSeguro: '',
       montoRecibido: null,
       referenciaPago: '',
       cambio: 0,
       seguroNombre: '',
       seguroNumero: ''
+    };
+  }
+
+  private crearDatosPaciente(): DatosPacienteForm {
+    return {
+      cedula: '',
+      nombre: '',
+      edad: null
     };
   }
 
@@ -118,7 +153,11 @@ export class ModuloCajaComponent implements OnInit {
     this.busquedaServicio = '';
     this.areaDestinoMensaje = '';
     this.mensajePacienteCobro = null;
+    this.reciboUltimoCobro = null;
     this.ticketCobro = this.crearTicketCobro();
+    this.datosPaciente = this.crearDatosPaciente();
+    this.pacienteEncontrado = false;
+    this.busquedaPacienteEnProceso = false;
   }
 
   private async cargarDatos() {
@@ -230,6 +269,31 @@ export class ModuloCajaComponent implements OnInit {
     };
   }
 
+  private normalizarTexto(valor: string | null | undefined): string {
+    return (valor ?? '').toString().trim();
+  }
+
+  private esDatoPacientePendiente(ticket: TicketPendiente): boolean {
+    const nombre = this.normalizarTexto(ticket.pacienteNombre).toUpperCase();
+    const cedula = this.normalizarTexto(ticket.pacienteCedula).toUpperCase();
+    return !nombre || nombre === 'CLIENTE' || nombre === 'SIN REGISTRAR' || cedula === 'KIOSKO' || cedula === 'PENDIENTE' || !cedula;
+  }
+
+  private cargarPacienteDesdeTicket(ticket: TicketPendiente) {
+    if (this.esDatoPacientePendiente(ticket)) {
+      this.datosPaciente = this.crearDatosPaciente();
+      this.pacienteEncontrado = false;
+      return;
+    }
+
+    this.datosPaciente = {
+      cedula: ticket.pacienteCedula ?? '',
+      nombre: ticket.pacienteNombre ?? '',
+      edad: ticket.paciente_edad ?? null
+    };
+    this.pacienteEncontrado = true;
+  }
+
   private async crearCuentaSenasa(cuenta: CuentaPorCobrarDb) {
     const { data, error } = await this.supabaseService
       .getClient()
@@ -253,8 +317,59 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   get totalCobroActual(): number {
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-    return servicio?.precio ?? this.ticketSeleccionado?.monto ?? 0;
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio) return this.ticketSeleccionado?.monto ?? 0;
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio.aplica_seguro) {
+      if (this.ticketCobro.planSeguro === 'subsidiado' && servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
+        return Number(servicio.precio_subsidiado);
+      }
+      if (this.ticketCobro.planSeguro === 'contributivo' && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
+        return Number(servicio.precio_contributivo);
+      }
+      if (this.ticketCobro.planSeguro === 'renacer' && servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
+        return Number(servicio.precio_renacer);
+      }
+      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
+    }
+
+    return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
+  }
+
+  get servicioSeleccionadoCobro(): ServicioPrecioDb | null {
+    return this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId) ?? null;
+  }
+
+  get servicioPermiteSeguroSeleccionado(): boolean {
+    return !!this.servicioSeleccionadoCobro?.aplica_seguro;
+  }
+
+  get precioSeguroDisponible(): number {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio || !servicio.aplica_seguro) return 0;
+    if (this.ticketCobro.planSeguro === 'subsidiado') {
+      return Number(servicio.precio_subsidiado ?? servicio.precio);
+    }
+    if (this.ticketCobro.planSeguro === 'contributivo') {
+      return Number(servicio.precio_contributivo ?? servicio.precio);
+    }
+    if (this.ticketCobro.planSeguro === 'renacer') {
+      return Number(servicio.precio_renacer ?? servicio.precio);
+    }
+    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
+  }
+
+  get nombreAseguradoraSeleccionada(): string {
+    switch (this.ticketCobro.planSeguro) {
+      case 'subsidiado':
+        return 'SENASA SUBSIDIADO';
+      case 'contributivo':
+        return 'SENASA CONTRIBUTIVO';
+      case 'renacer':
+        return 'ARS RENACER';
+      default:
+        return '';
+    }
   }
 
   volver() {
@@ -272,9 +387,96 @@ export class ModuloCajaComponent implements OnInit {
     this.ticketCobro = this.crearTicketCobro();
     this.ticketCobro.servicioCobroId = ticket.servicioPrecioId;
     this.busquedaServicio = '';
+    this.cargarPacienteDesdeTicket(ticket);
+    this.onServicioCobroChange();
     this.pasoActual = 2;
     this.notificacion = null;
     this.cdr.detectChanges();
+  }
+
+  async buscarPacientePorCedula() {
+    const cedula = this.datosPaciente.cedula.trim();
+    if (!cedula) {
+      this.pacienteEncontrado = false;
+      return;
+    }
+
+    this.busquedaPacienteEnProceso = true;
+    try {
+      const paciente = await this.pacientesDbService.buscarPorCedula(cedula);
+      if (paciente) {
+        this.datosPaciente = {
+          cedula: paciente.cedula,
+          nombre: paciente.nombre,
+          edad: paciente.edad
+        };
+        this.pacienteEncontrado = true;
+        this.mostrarNotificacion('info', 'Paciente encontrado', 'La ficha fue cargada desde el historial.');
+      } else {
+        this.pacienteEncontrado = false;
+        this.mostrarNotificacion('info', 'Paciente no registrado', 'Puede completar los datos manualmente.');
+      }
+    } catch (error) {
+      console.error('Error buscando paciente:', error);
+      this.pacienteEncontrado = false;
+      this.mostrarNotificacion('error', 'Error', 'No se pudo buscar el paciente.');
+    } finally {
+      this.busquedaPacienteEnProceso = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private validarDatosPaciente(): string | null {
+    if (!this.ticketSeleccionado) return 'Debe seleccionar un ticket.';
+    if (!this.datosPaciente.cedula.trim()) return 'Ingrese la cédula o ID del paciente.';
+    if (!this.datosPaciente.nombre.trim()) return 'Ingrese el nombre completo del paciente.';
+    if (!this.datosPaciente.edad || this.datosPaciente.edad <= 0) return 'Ingrese una edad válida.';
+    return null;
+  }
+
+  async guardarDatosPacienteYContinuar() {
+    const error = this.validarDatosPaciente();
+    if (error) {
+      this.mostrarNotificacion('warning', 'Datos requeridos', error);
+      return;
+    }
+
+    if (!this.ticketSeleccionado) {
+      this.mostrarNotificacion('error', 'Error', 'Debe seleccionar un ticket.');
+      return;
+    }
+
+    try {
+      const paciente = await this.pacientesDbService.guardarPaciente({
+        cedula: this.datosPaciente.cedula.trim(),
+        nombre: this.datosPaciente.nombre.trim(),
+        edad: Number(this.datosPaciente.edad),
+        telefono: null,
+        correo: null,
+        fechaNacimiento: null
+      });
+
+      const ticketActualizado = await this.turnosDbService.actualizarTurno(this.ticketSeleccionado.id, {
+        paciente_cedula: paciente.cedula,
+        paciente_nombre: paciente.nombre,
+        paciente_edad: paciente.edad,
+        fecha_llamado: this.ticketSeleccionado.fecha_llamado ?? new Date().toISOString()
+      });
+
+      this.ticketSeleccionado = {
+        ...this.ticketSeleccionado,
+        ...ticketActualizado,
+        pacienteCedula: paciente.cedula,
+        pacienteNombre: paciente.nombre,
+        paciente_edad: paciente.edad
+      };
+
+      this.mostrarNotificacion('success', 'Datos guardados', 'La ficha del paciente fue registrada. Continúe con el cobro.');
+      await this.iniciarAtencion();
+    } catch (error) {
+      console.error('Error guardando datos del paciente:', error);
+      this.mostrarNotificacion('error', 'Error', 'No se pudieron guardar los datos del paciente.');
+    }
   }
 
   async llamarTicket(ticket: TicketPendiente) {
@@ -312,19 +514,45 @@ export class ModuloCajaComponent implements OnInit {
       this.ticketSeleccionado.estado = 'atendiendo';
       this.mostrarNotificacion(
         'success',
-        'Atención iniciada',
-        `El paciente del turno ${this.ticketSeleccionado.codigo} está siendo atendido. Proceda con el cobro.`
+        'AtenciÃ³n iniciada',
+        `El paciente del turno ${this.ticketSeleccionado.codigo} estÃ¡ siendo atendido. Proceda con el cobro.`
       );
       this.cdr.detectChanges();
     } catch (error) {
-      console.error('Error iniciando atención:', error);
-      this.mostrarNotificacion('error', 'Error', 'No se pudo iniciar la atención.');
+      console.error('Error iniciando atenciÃ³n:', error);
+      this.mostrarNotificacion('error', 'Error', 'No se pudo iniciar la atenciÃ³n.');
     }
   }
 
   onServicioCobroChange() {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (servicio && !servicio.aplica_seguro && this.ticketCobro.metodoPago === 'senasa') {
+      this.ticketCobro.metodoPago = 'efectivo';
+      this.ticketCobro.planSeguro = '';
+      this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica seguro. Se ajustó el método de pago a efectivo.');
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
+      if (!this.ticketCobro.planSeguro) {
+        if (servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
+          this.ticketCobro.planSeguro = 'subsidiado';
+        } else if (servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
+          this.ticketCobro.planSeguro = 'contributivo';
+        } else if (servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
+          this.ticketCobro.planSeguro = 'renacer';
+        }
+      }
+    } else if (this.ticketCobro.metodoPago !== 'senasa') {
+      this.ticketCobro.planSeguro = '';
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
+      this.ticketCobro.seguroNombre = this.nombreAseguradoraSeleccionada || this.ticketCobro.seguroNombre || 'SENASA';
+    } else {
+      this.ticketCobro.seguroNombre = '';
+    }
+
     this.calcularCambio();
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
     if (servicio) {
       this.areaDestinoMensaje = servicio.area_destino;
     }
@@ -362,8 +590,18 @@ export class ModuloCajaComponent implements OnInit {
       return;
     }
 
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.servicioPermiteSeguroSeleccionado) {
+      this.mostrarNotificacion('error', 'Seguro no disponible', 'El servicio seleccionado no aplica seguro.');
+      return;
+    }
+
     if (this.ticketCobro.metodoPago === 'senasa' && !this.ticketCobro.seguroNumero.trim()) {
-      this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el número de afiliación del seguro.');
+      this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el nÃºmero de afiliaciÃ³n del seguro.');
+      return;
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.nombreAseguradoraSeleccionada) {
+      this.mostrarNotificacion('error', 'Cobertura requerida', 'Seleccione una cobertura de seguro.');
       return;
     }
 
@@ -378,7 +616,7 @@ export class ModuloCajaComponent implements OnInit {
       }
 
       const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-      const areaDestino = servicio?.area_destino || this.ticketSeleccionado.areaDestino || 'Área correspondiente';
+      const areaDestino = servicio?.area_destino || this.ticketSeleccionado.areaDestino || 'Ãrea correspondiente';
 
       await this.turnosDbService.actualizarTurnoEstado(this.ticketSeleccionado.id, {
         estado: 'finalizado',
@@ -461,11 +699,21 @@ export class ModuloCajaComponent implements OnInit {
 
       this.totalPagadosHoy += 1;
       this.ultimoCobroTicketCodigo = this.ticketSeleccionado.codigo;
+      this.reciboUltimoCobro = {
+        codigoTicket: this.ticketSeleccionado.codigo,
+        servicioNombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
+        total,
+        metodoPago: this.ticketCobro.metodoPago,
+        montoRecibido: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.montoRecibido : null,
+        cambio: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.cambio : 0,
+        referenciaPago: this.ticketCobro.referenciaPago,
+        fecha: new Date().toISOString()
+      };
 
       const textoPago =
         this.ticketCobro.metodoPago === 'senasa'
           ? `Turno ${this.ticketSeleccionado.codigo} registrado con SENASA. Queda pendiente por cobrar a la aseguradora.`
-          : `Turno ${this.ticketSeleccionado.codigo} pagado. Diríjase a ${areaDestino} para continuar con su atención.`;
+          : `Turno ${this.ticketSeleccionado.codigo} pagado. DirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.mostrarNotificacion('success', 'Pago exitoso', textoPago);
 
@@ -476,9 +724,10 @@ export class ModuloCajaComponent implements OnInit {
             )}\n\nSENASA: cuenta registrada como pendiente de cobro a la aseguradora.`
           : `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
               2
-            )}\n\nINDICACIÓN PARA EL PACIENTE:\nDiríjase a ${areaDestino} para continuar con su atención.`;
+            )}\n\nINDICACIÃ“N PARA EL PACIENTE:\nDirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.pasoActual = 3;
+      this.imprimirComprobante();
       this.ticketSeleccionado = null;
       this.ticketCobro = this.crearTicketCobro();
       await this.cargarTicketsPendientes();
@@ -492,107 +741,66 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   imprimirComprobante() {
-    const ticketCodigo = this.ultimoCobroTicketCodigo || this.ticketSeleccionado?.codigo;
-    if (!ticketCodigo) {
+    const recibo = this.reciboUltimoCobro;
+    if (!recibo) {
       this.mostrarNotificacion('error', 'Error', 'No hay información para imprimir.');
       return;
     }
-
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-    const servicioNombre = servicio?.nombre ?? this.ticketSeleccionado?.servicioNombre ?? 'Servicio';
-    const total = this.totalCobroActual;
-    const metodo = this.ticketCobro.metodoPago.toUpperCase();
-    const codigoServicio = servicio?.codigo || '-';
-    const areaDestino = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'Área correspondiente';
-    const subtotal = total;
-    const impuesto = 0;
-    const totalNeto = subtotal + impuesto;
 
     const html = `
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Comprobante ${ticketCodigo}</title>
+          <title>Comprobante ${recibo.codigoTicket}</title>
           <style>
             *{box-sizing:border-box}
-            body{font-family:Arial,sans-serif;padding:18px;background:#fff;color:#111}
-            .box{max-width:420px;margin:0 auto;border:1px solid #111;padding:16px}
-            .header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}
+            @page{size:58mm auto;margin:0}
+            body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+            .ticket{width:58mm;max-width:58mm;padding:6mm 4mm 4mm}
+            .center{text-align:center}
             .brand{font-size:18px;font-weight:900;letter-spacing:1px}
-            .eslogan{font-size:11px;margin-top:4px}
-            .meta{font-size:11px;line-height:1.5;margin-top:8px}
-            .title{font-size:15px;font-weight:800;text-align:center;margin:14px 0 10px}
-            .code{font-size:28px;font-weight:900;text-align:center;margin:8px 0 12px}
-            .row{display:flex;justify-content:space-between;gap:10px;margin:6px 0;font-size:12px}
-            .row strong{max-width:58%;text-align:right}
-            .divider{border-top:1px dashed #111;margin:12px 0}
-            .total{font-size:16px;font-weight:900;text-align:right}
-            .footer{margin-top:14px;font-size:10px;line-height:1.5;text-align:center}
-            .highlight{background:#f0fdf4;padding:10px;border-radius:8px;margin:10px 0;text-align:center;border:1px solid #10b981}
+            .company{font-size:11px;line-height:1.35;margin-top:4px}
+            .title{font-size:13px;font-weight:700;margin:10px 0 8px;text-align:center;border-top:1px dashed #111;border-bottom:1px dashed #111;padding:6px 0}
+            .line{display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1.45;margin:2px 0}
+            .line strong{max-width:60%;text-align:right;word-break:break-word}
+            .divider{border-top:1px dashed #111;margin:8px 0}
+            .total{font-size:14px;font-weight:900;text-align:right;margin-top:4px}
+            .footer{font-size:10px;text-align:center;line-height:1.4;margin-top:8px}
           </style>
         </head>
         <body>
-          <div class="box">
-            <div class="header">
-              <div class="brand">FUNDACION BIENESTAR Y DESARROLLO, INC</div>
-              <div class="eslogan">AYUDANOS A AYUDAR</div>
-              <div class="meta">
+          <div class="ticket">
+            <div class="center">
+              <div class="brand">FUNBIDE</div>
+              <div class="company">
                 RNC: 430090387<br/>
-                Calle Guaroa No. 4, Invivienda, Santo Domingo Este<br/>
-                Tel: 809-869-3445 / 809-245-8339<br/>
-                Email: FUNBIDE2009@HOTMAIL.COM
+                FUNBIDE20009@hotmail.com
               </div>
             </div>
-            <div class="title">COMPROBANTE DE PAGO</div>
-            <div class="code">${ticketCodigo}</div>
-            <div class="row"><span>Fecha</span><strong>${new Date().toLocaleString('es-DO')}</strong></div>
-            <div class="row"><span>Servicio</span><strong>${servicioNombre}</strong></div>
-            <div class="row"><span>Código servicio</span><strong>${codigoServicio}</strong></div>
-            <div class="row"><span>Método de pago</span><strong>${metodo}</strong></div>
+            <div class="title">RECIBO DE PAGO</div>
+            <div class="line"><span>Ticket</span><strong>${recibo.codigoTicket}</strong></div>
+            <div class="line"><span>Fecha</span><strong>${new Date(recibo.fecha).toLocaleString('es-DO')}</strong></div>
+            <div class="line"><span>Servicio</span><strong>${recibo.servicioNombre}</strong></div>
+            <div class="line"><span>Pago</span><strong>${recibo.metodoPago.toUpperCase()}</strong></div>
             <div class="divider"></div>
-            <div class="row"><span>Subtotal</span><strong>RD$ ${subtotal.toFixed(2)}</strong></div>
-            <div class="row"><span>Impuestos</span><strong>RD$ ${impuesto.toFixed(2)}</strong></div>
-            <div class="row"><span>Total</span><strong>RD$ ${totalNeto.toFixed(2)}</strong></div>
-            ${
-              this.ticketCobro.metodoPago === 'efectivo'
-                ? `<div class="row"><span>Recibido</span><strong>RD$ ${(this.ticketCobro.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="row"><span>Cambio</span><strong>RD$ ${this.ticketCobro.cambio.toFixed(2)}</strong></div>`
-                : ''
-            }
-            ${
-              this.ticketCobro.metodoPago === 'senasa'
-                ? `<div class="row"><span>Seguro</span><strong>${this.ticketCobro.seguroNombre || 'SENASA'}</strong></div><div class="row"><span>Afiliación</span><strong>${this.ticketCobro.seguroNumero}</strong></div>`
-                : ''
-            }
-            ${
-              this.ticketCobro.metodoPago === 'transferencia'
-                ? `<div class="row"><span>Referencia</span><strong>${this.ticketCobro.referenciaPago || '-'}</strong></div>`
-                : ''
-            }
-            <div class="divider"></div>
-            <div class="highlight">
-              <strong>DIRÍJASE A:</strong><br/>
-              ${areaDestino}
-            </div>
+            <div class="line"><span>Precio servicio</span><strong>RD$ ${recibo.total.toFixed(2)}</strong></div>
+            ${recibo.metodoPago === 'efectivo' ? `<div class="line"><span>Recibido</span><strong>RD$ ${(recibo.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="line"><span>Cambio</span><strong>RD$ ${recibo.cambio.toFixed(2)}</strong></div>` : ''}
+            ${recibo.metodoPago === 'transferencia' ? `<div class="line"><span>Referencia</span><strong>${recibo.referenciaPago || '-'}</strong></div>` : ''}
             <div class="total">PAGADO</div>
             <div class="footer">Gracias por preferir FUNBIDE.</div>
           </div>
-          <script>window.print();setTimeout(()=>window.close(),400);</script>
         </body>
       </html>
     `;
 
-    const ventana = window.open('', '_blank');
-    if (ventana) {
-      ventana.document.write(html);
-      ventana.document.close();
-    }
+    printHtmlInHiddenFrame(html);
   }
 
   enviarAlArea() {
     if (!this.ultimoCobroTicketCodigo) return;
 
-    const area = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'área correspondiente';
+    const area = this.areaDestinoMensaje || this.ticketSeleccionado?.areaDestino || 'Ã¡rea correspondiente';
     this.mostrarNotificacion('success', 'Paciente enviado', `El turno ${this.ultimoCobroTicketCodigo} fue enviado a ${area}.`);
 
     this.ultimoCobroTicketCodigo = '';
@@ -604,7 +812,7 @@ export class ModuloCajaComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  mostrarNotificacion(type: 'success' | 'error' | 'info', title: string, message: string) {
+  mostrarNotificacion(type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) {
     this.notificacion = { type, title, message };
     this.cdr.detectChanges();
 
@@ -614,3 +822,4 @@ export class ModuloCajaComponent implements OnInit {
     }, 4000);
   }
 }
+

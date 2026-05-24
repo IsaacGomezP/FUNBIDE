@@ -1,8 +1,8 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectorRef, NgZone } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TurnosDbService } from '../../services/turnos-db.service';
-import { PacientesDbService } from '../../services/pacientes-db.service';
+import { CuadreCajaDbService } from '../../services/cuadre-caja-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 interface ServicioTurno {
   id: string;
@@ -11,6 +11,7 @@ interface ServicioTurno {
   prefijo: string;
   icono: string;
   descripcion: string;
+  tone: 'blue' | 'sky' | 'navy' | 'teal' | 'amber' | 'violet' | 'green';
 }
 
 interface TicketGenerado {
@@ -19,148 +20,123 @@ interface TicketGenerado {
   codigo: string;
   servicio: string;
   categoria: string;
-  pacienteNombre: string;
-  pacienteCedula: string;
-  pacienteEdad: number;
-  pacienteFechaNacimiento: string;
-  pacienteTelefono: string;
-  pacienteCorreo: string;
   fecha: Date;
 }
 
 @Component({
   selector: 'app-modulo-generar-turno',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './modulo-generarTurno.html',
   styleUrls: ['./modulo-generarTurno.css']
 })
-export class ModuloGenerarTurnoComponent {
+export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   @Output() back = new EventEmitter<void>();
-  @Input() usuarioNombre = 'Ana Rodríguez';
-  @Input() usuarioRol = 'Cajero / Recepción';
+  @Input() usuarioNombre = 'Recepcion';
+  @Input() usuarioRol = 'Kiosko';
+  @ViewChild('serviceRail') serviceRail?: ElementRef<HTMLDivElement>;
 
   currentDate = new Date();
-
-  pacienteCedula = '';
-  pacienteNombre = '';
-  pacienteEdad: number | null = null;
-  pacienteFechaNacimiento = '';
-  pacienteTelefono = '';
-  pacienteCorreo = '';
-  esPacienteRecurrente = false;
+  currentStep: 'inicio' | 'servicios' = 'inicio';
   servicioSeleccionadoId = '';
   ticketGenerado: TicketGenerado | null = null;
   isSavingTurno = false;
   showSuccessPulse = false;
-  isSearchingPaciente = false;
   notificationMessage = '';
   notificationType: 'success' | 'info' | 'warning' | 'danger' | '' = '';
-  private notificationTimer: any;
+  jornadaCerrada = false;
+  mensajeCierre = '';
 
   servicios: ServicioTurno[] = [
-    { id: 'psicologia', nombre: 'Psicología', categoria: 'Consulta', prefijo: 'PS', icono: 'fa-brain', descripcion: 'Apoyo emocional y evaluación' },
-    { id: 'medicina', nombre: 'Medicina General', categoria: 'Consulta', prefijo: 'MG', icono: 'fa-stethoscope', descripcion: 'Consulta médica general' },
-    { id: 'sonografia', nombre: 'Sonografía', categoria: 'Imagen', prefijo: 'SO', icono: 'fa-wave-square', descripcion: 'Estudios de imagen' },
-    { id: 'laboratorio', nombre: 'Laboratorio', categoria: 'Apoyo', prefijo: 'LA', icono: 'fa-vial', descripcion: 'Toma y análisis de muestras' },
-    { id: 'procedimientos', nombre: 'Procedimientos', categoria: 'Apoyo', prefijo: 'PR', icono: 'fa-notes-medical', descripcion: 'Atenciones y procedimientos' },
-    { id: 'terapias', nombre: 'Terapias', categoria: 'Rehabilitación', prefijo: 'TE', icono: 'fa-person-walking', descripcion: 'Sesiones terapéuticas' }
+    { id: 'medicina-general', nombre: 'Medicina General', categoria: 'Consulta', prefijo: 'MG', icono: 'fa-stethoscope', descripcion: 'Atencion medica general', tone: 'blue' },
+    { id: 'ginecologia', nombre: 'Ginecologia', categoria: 'Consulta', prefijo: 'GY', icono: 'fa-female', descripcion: 'Atencion ginecologica y obstetrica', tone: 'violet' },
+    { id: 'psicologia', nombre: 'Psicologia', categoria: 'Consulta', prefijo: 'PS', icono: 'fa-brain', descripcion: 'Apoyo emocional y evaluacion', tone: 'sky' },
+    { id: 'sonografia', nombre: 'Sonografia', categoria: 'Imagenologia', prefijo: 'SO', icono: 'fa-wave-square', descripcion: 'Estudios de imagen', tone: 'teal' },
+    { id: 'laboratorio', nombre: 'Laboratorio', categoria: 'Analisis', prefijo: 'LA', icono: 'fa-vial', descripcion: 'Toma y analisis de muestras', tone: 'green' },
+    { id: 'procedimientos', nombre: 'Procedimientos', categoria: 'Apoyo', prefijo: 'PR', icono: 'fa-notes-medical', descripcion: 'Atenciones y procedimientos', tone: 'amber' },
+    { id: 'terapias', nombre: 'Terapias', categoria: 'Rehabilitacion', prefijo: 'TE', icono: 'fa-person-walking', descripcion: 'Sesiones terapeuticas', tone: 'navy' }
   ];
+
+  private notificationTimer: ReturnType<typeof setTimeout> | null = null;
+  private resetTimer: ReturnType<typeof setTimeout> | null = null;
+  private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+  private jornadaTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly inactivityTimeoutMs = 25000;
 
   constructor(
     private turnosDbService: TurnosDbService,
-    private pacientesDbService: PacientesDbService,
+    private cuadreDbService: CuadreCajaDbService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
+
+  ngOnInit() {
+    void this.verificarJornada().then(() => {
+      this.jornadaTimer = setInterval(() => void this.verificarJornada(), 60000);
+      if (!this.jornadaCerrada && (this.usuarioRol === 'Kiosko' || this.usuarioRol === 'Caja / Kiosko')) {
+        queueMicrotask(() => this.iniciarKiosko());
+      }
+    });
+  }
 
   get servicioSeleccionado(): ServicioTurno | null {
     return this.servicios.find((servicio) => servicio.id === this.servicioSeleccionadoId) || null;
   }
 
-  async onCedulaBlur() {
-    const cedula = this.pacienteCedula.trim().replace(/\s+/g, '');
-    if (!cedula) return;
+  desplazarServicios(direccion: -1 | 1) {
+    const rail = this.serviceRail?.nativeElement;
+    if (!rail) return;
 
-    this.isSearchingPaciente = true;
-    this.cdr.detectChanges();
-
-    try {
-      const paciente = await this.pacientesDbService.buscarPorCedula(cedula);
-      this.ngZone.run(() => {
-        if (paciente) {
-          this.pacienteNombre = paciente.nombre || this.pacienteNombre;
-          this.pacienteEdad = paciente.edad ?? this.pacienteEdad;
-          this.pacienteFechaNacimiento = paciente.fechaNacimiento || '';
-          this.pacienteTelefono = paciente.telefono || this.pacienteTelefono;
-          this.pacienteCorreo = paciente.correo || this.pacienteCorreo;
-          this.esPacienteRecurrente = true;
-          this.showNotification('info', 'Paciente recurrente', 'Se cargó la edad desde el historial y no es necesario pedir la fecha de nacimiento.');
-        } else {
-          this.pacienteEdad = null;
-          this.pacienteFechaNacimiento = '';
-          this.pacienteTelefono = '';
-          this.pacienteCorreo = '';
-          this.esPacienteRecurrente = false;
-          this.showNotification('warning', 'Paciente nuevo', 'Completa la fecha de nacimiento para calcular la edad.');
-        }
-        this.isSearchingPaciente = false;
-        this.cdr.detectChanges();
-      });
-    } catch (error) {
-      console.error('Error buscando paciente:', error);
-      this.ngZone.run(() => {
-        this.showNotification('danger', 'Error de búsqueda', 'No se pudo consultar la base de datos de pacientes.');
-        this.isSearchingPaciente = false;
-        this.cdr.detectChanges();
-      });
-    }
+    const ancho = Math.max(rail.clientWidth * 0.8, 340);
+    rail.scrollBy({ left: ancho * direccion, behavior: 'smooth' });
   }
 
-  async generarTicket() {
-    if (!this.pacienteCedula.trim()) {
-      this.showNotification('warning', 'Campo requerido', 'Ingrese la cédula del paciente');
+  iniciarKiosko() {
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No es posible generar turnos después del cierre.');
       return;
     }
-    if (!this.pacienteNombre.trim()) {
-      this.showNotification('warning', 'Campo requerido', 'Ingrese el nombre del paciente');
+    this.cancelarReinicio();
+    this.cancelarInactividad();
+    this.currentStep = 'servicios';
+    this.servicioSeleccionadoId = '';
+    this.ticketGenerado = null;
+    this.showSuccessPulse = false;
+    this.notificationMessage = '';
+    this.notificationType = '';
+    this.cdr.detectChanges();
+    this.programarInactividad();
+  }
+
+  async seleccionarServicio(servicio: ServicioTurno) {
+    if (this.isSavingTurno) return;
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No se pueden generar nuevos turnos.');
       return;
     }
-    if (!this.pacienteTelefono.trim() && !this.pacienteCorreo.trim()) {
-      this.showNotification('warning', 'Contacto requerido', 'Ingrese al menos un teléfono o un correo');
-      return;
-    }
-    if (!this.esPacienteRecurrente && !this.pacienteFechaNacimiento) {
-      this.showNotification('warning', 'Campo requerido', 'Ingrese la fecha de nacimiento del paciente');
-      return;
-    }
-    if (!this.servicioSeleccionado) {
+
+    this.servicioSeleccionadoId = servicio.id;
+    this.cancelarInactividad();
+    await this.generarTicket(servicio);
+  }
+
+  async generarTicket(servicio: ServicioTurno) {
+    if (!servicio) {
       this.showNotification('warning', 'Campo requerido', 'Seleccione un servicio');
       return;
     }
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No se pueden generar nuevos turnos.');
+      return;
+    }
 
-    const servicio = this.servicioSeleccionado;
-
-    this.ngZone.run(() => {
-      this.isSavingTurno = true;
-      this.showNotification('info', 'Procesando', 'Generando turno, espere un momento...');
-      this.cdr.detectChanges();
-    });
+    this.isSavingTurno = true;
+    this.cancelarInactividad();
+    this.showNotification('info', 'Procesando', 'Generando turno, espere un momento...');
+    this.cdr.detectChanges();
 
     try {
-      await this.delay(100);
-
       const siguienteNumero = await this.turnosDbService.obtenerUltimoNumero(servicio.prefijo);
-      let edadCalculada: number | null = this.pacienteEdad;
-
-      if (!this.esPacienteRecurrente) {
-        edadCalculada = this.calcularEdadDesdeNacimiento(this.pacienteFechaNacimiento);
-        if (edadCalculada === null) {
-          this.showNotification('warning', 'Fecha inválida', 'Verifique la fecha de nacimiento ingresada');
-          this.isSavingTurno = false;
-          return;
-        }
-      }
 
       const nuevoTicket: TicketGenerado = {
         numero: siguienteNumero,
@@ -168,23 +144,8 @@ export class ModuloGenerarTurnoComponent {
         codigo: `${servicio.prefijo}-${String(siguienteNumero).padStart(3, '0')}`,
         servicio: servicio.nombre,
         categoria: servicio.categoria,
-        pacienteNombre: this.pacienteNombre.trim(),
-        pacienteCedula: this.pacienteCedula.trim(),
-        pacienteEdad: edadCalculada!,
-        pacienteFechaNacimiento: this.pacienteFechaNacimiento,
-        pacienteTelefono: this.pacienteTelefono.trim(),
-        pacienteCorreo: this.pacienteCorreo.trim(),
         fecha: new Date()
       };
-
-      await this.pacientesDbService.guardarPaciente({
-        cedula: nuevoTicket.pacienteCedula,
-        nombre: nuevoTicket.pacienteNombre,
-        edad: nuevoTicket.pacienteEdad,
-        telefono: nuevoTicket.pacienteTelefono || null,
-        correo: nuevoTicket.pacienteCorreo || null,
-        fechaNacimiento: nuevoTicket.pacienteFechaNacimiento || null
-      });
 
       await this.turnosDbService.crearTurno({
         codigo: nuevoTicket.codigo,
@@ -193,145 +154,203 @@ export class ModuloGenerarTurnoComponent {
         servicio_id: servicio.id,
         servicio_nombre: servicio.nombre,
         categoria: servicio.categoria,
-        paciente_cedula: nuevoTicket.pacienteCedula,
-        paciente_nombre: nuevoTicket.pacienteNombre,
-        paciente_edad: nuevoTicket.pacienteEdad,
-        paciente_fecha_nacimiento: nuevoTicket.pacienteFechaNacimiento || null,
+        paciente_cedula: 'KIOSKO',
+        paciente_nombre: 'Cliente',
+        paciente_edad: 0,
+        paciente_fecha_nacimiento: null,
         estado: 'espera',
         puesto_atencion: null
       });
 
-      this.ngZone.run(() => {
-        this.ticketGenerado = nuevoTicket;
-        this.isSavingTurno = false;
-        this.showNotification('success', 'Turno creado', `El ticket ${nuevoTicket.codigo} ya quedó registrado en la pantalla TV.`);
-        this.showSuccessPulse = true;
-        this.cdr.detectChanges();
+      this.ticketGenerado = nuevoTicket;
+      this.isSavingTurno = false;
+      this.showNotification('success', 'Turno creado', `El ticket ${nuevoTicket.codigo} quedo registrado e ira a impresion.`);
+      this.showSuccessPulse = true;
+      this.cdr.detectChanges();
+
+      this.imprimirTicket();
+      this.programarReinicio();
+
+      this.ngZone.runOutsideAngular(() => {
+        setTimeout(() => {
+          this.ngZone.run(() => {
+            this.showSuccessPulse = false;
+            this.cdr.detectChanges();
+          });
+        }, 1400);
       });
-
-      setTimeout(() => {
-        this.ngZone.run(() => {
-          this.imprimirTicket();
-        });
-      }, 500);
-
-      setTimeout(() => {
-        this.ngZone.run(() => {
-          this.showSuccessPulse = false;
-          this.cdr.detectChanges();
-        });
-      }, 1400);
     } catch (error) {
       console.error('Error creando turno:', error);
-      this.ngZone.run(() => {
-        this.isSavingTurno = false;
-        this.showNotification('danger', 'Error al generar', 'No se pudo registrar el turno. Intente nuevamente.');
-        this.cdr.detectChanges();
-      });
+      this.isSavingTurno = false;
+      this.showNotification('danger', 'Error al generar', 'No se pudo registrar el turno. Intente nuevamente.');
+      this.cdr.detectChanges();
     }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   limpiarFormulario() {
-    this.ngZone.run(() => {
-      this.pacienteCedula = '';
-      this.pacienteNombre = '';
-      this.pacienteEdad = null;
-      this.pacienteFechaNacimiento = '';
-      this.pacienteTelefono = '';
-      this.pacienteCorreo = '';
-      this.esPacienteRecurrente = false;
-      this.servicioSeleccionadoId = '';
-      this.ticketGenerado = null;
-      this.cdr.detectChanges();
-    });
-  }
-
-  calcularEdadDesdeNacimiento(fechaNacimiento: string): number | null {
-    const nacimiento = new Date(fechaNacimiento);
-    if (Number.isNaN(nacimiento.getTime())) return null;
-
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-
-    return edad >= 0 ? edad : null;
+    this.cancelarReinicio();
+    this.cancelarInactividad();
+    this.ticketGenerado = null;
+    this.servicioSeleccionadoId = '';
+    this.currentStep = 'inicio';
+    this.showSuccessPulse = false;
+    this.notificationMessage = '';
+    this.notificationType = '';
+    this.cdr.detectChanges();
   }
 
   imprimirTicket() {
     if (!this.ticketGenerado) return;
+    const t = this.ticketGenerado;
+    const fechaFormateada = t.fecha.toLocaleString('es-DO', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    });
+    const ticketHtml = `
+      <!doctype html>
+      <html>
+        <head>
+          <title>Ticket ${t.codigo}</title>
+          <meta charset="utf-8" />
+          <style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            @page{size:58mm auto;margin:0}
+            html,body{width:100%;background:#fff;color:#000}
+            body{font-family:Arial,sans-serif}
+            .ticket{width:58mm;max-width:58mm;margin:0 auto;padding:5mm 3mm;text-align:center}
+            .brand{font-size:15px;font-weight:800;letter-spacing:1px;margin-bottom:8px}
+            .subtitle{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#444;margin-bottom:8px}
+            .code{font-size:30px;font-weight:800;line-height:1;margin:6px 0 10px}
+            .service{font-size:12px;font-weight:700;line-height:1.2;margin-bottom:4px}
+            .category{font-size:10px;color:#444;margin-bottom:12px}
+            .message{font-size:10px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000;padding:6px 0;margin:10px 0}
+            .small{font-size:8px;color:#555;margin-top:4px}
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            <div class="brand">FUNBIDE</div>
+            <div class="subtitle">Kiosko de turnos</div>
+            <div class="code">${t.codigo}</div>
+            <div class="service">${t.servicio}</div>
+            <div class="category">${t.categoria}</div>
+            <div class="message">Favor esperar su llamado</div>
+            <div class="small">${fechaFormateada}</div>
+          </div>
+        </body>
+      </html>
+    `;
 
-    this.showNotification('info', 'Impresión', 'Se abrirá el cuadro de impresión para que elijas la impresora.');
-
-    setTimeout(() => {
-      const win = window.open('', '_blank');
-      if (!win) return;
-
-      const t = this.ticketGenerado!;
-      win.document.write(`
-        <!doctype html>
-        <html>
-          <head>
-            <title>Ticket ${t.codigo}</title>
-            <style>
-              *{margin:0;padding:0;box-sizing:border-box}
-              @page{size:58mm auto;margin:0}
-              body{font-family:Arial,sans-serif;padding:0;background:#fff}
-              .ticket{width:58mm;max-width:58mm;margin:0 auto;text-align:center;padding:4mm 3mm}
-              .brand{font-size:16px;font-weight:800;letter-spacing:1px;color:#000;margin-bottom:8px}
-              .code{font-size:28px;font-weight:800;color:#000;line-height:1;margin:4px 0 10px}
-              .name{font-size:12px;font-weight:700;color:#000;margin-bottom:6px;word-break:break-word}
-              .service{font-size:11px;color:#222;margin-bottom:10px;word-break:break-word}
-              .message{font-size:10px;font-weight:700;color:#000;border-top:1px solid #000;border-bottom:1px solid #000;padding:6px 0;margin-top:8px}
-              .small{font-size:8px;color:#666;margin-top:8px}
-            </style>
-          </head>
-          <body>
-            <div class="ticket">
-              <div class="brand">FUNBIDE</div>
-              <div class="code">${t.codigo}</div>
-              <div class="name">${t.pacienteNombre}</div>
-              <div class="service">${t.servicio}</div>
-              ${t.pacienteFechaNacimiento ? `<div class="small">Nac: ${t.pacienteFechaNacimiento}</div>` : ''}
-              <div class="small">Edad: ${t.pacienteEdad} años</div>
-              ${t.pacienteTelefono ? `<div class="small">Tel: ${t.pacienteTelefono}</div>` : ''}
-              ${t.pacienteCorreo ? `<div class="small">Correo: ${t.pacienteCorreo}</div>` : ''}
-              <div class="message">Por favor espere</div>
-              <div class="small">${new Date().toLocaleString()}</div>
-            </div>
-            <script>window.print();setTimeout(()=>window.close(),500);<\/script>
-          </body>
-        </html>
-      `);
-      win.document.close();
-    }, 300);
+    printHtmlInHiddenFrame(ticketHtml, {
+      onError: () => {
+        this.showNotification('warning', 'Impresion no disponible', 'No se pudo preparar el ticket para imprimir.');
+      }
+    });
   }
 
   showNotification(type: 'success' | 'info' | 'warning' | 'danger', title: string, message: string) {
-    this.ngZone.run(() => {
-      this.notificationType = type;
-      this.notificationMessage = `${title}: ${message}`;
-      this.cdr.detectChanges();
+    this.notificationType = type;
+    this.notificationMessage = `${title}: ${message}`;
+    this.cdr.detectChanges();
 
+    if (this.notificationTimer) {
       clearTimeout(this.notificationTimer);
-      this.notificationTimer = setTimeout(() => {
-        this.ngZone.run(() => {
-          this.notificationMessage = '';
-          this.notificationType = '';
-          this.cdr.detectChanges();
-        });
-      }, 3500);
-    });
+    }
+
+    this.notificationTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.notificationMessage = '';
+        this.notificationType = '';
+        this.cdr.detectChanges();
+      });
+    }, 3500);
   }
 
   volver() {
     this.back.emit();
   }
+
+  ngOnDestroy() {
+    if (this.notificationTimer) clearTimeout(this.notificationTimer);
+    if (this.resetTimer) clearTimeout(this.resetTimer);
+    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    if (this.jornadaTimer) clearInterval(this.jornadaTimer);
+  }
+
+  private programarReinicio() {
+    this.cancelarReinicio();
+    this.resetTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.limpiarFormulario();
+      });
+    }, 12000);
+  }
+
+  private cancelarReinicio() {
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
+  }
+
+  reiniciarInactividad() {
+    if (this.currentStep !== 'servicios' || this.ticketGenerado || this.isSavingTurno) return;
+    this.programarInactividad();
+  }
+
+  private programarInactividad() {
+    this.cancelarInactividad();
+    this.inactivityTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        if (this.currentStep === 'servicios' && !this.ticketGenerado && !this.isSavingTurno && !this.jornadaCerrada) {
+          this.limpiarFormulario();
+        }
+      });
+    }, this.inactivityTimeoutMs);
+  }
+
+  private cancelarInactividad() {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
+  }
+
+  private async verificarJornada() {
+    const ahora = new Date();
+    const cerradaPorHora = ahora.getHours() >= 21;
+
+    let cerradaEnDb = false;
+    try {
+      cerradaEnDb = await this.cuadreDbService.jornadaCerradaHoy(ahora);
+    } catch (error) {
+      console.error('Error verificando cierre de jornada', error);
+    }
+
+    if (cerradaPorHora && !cerradaEnDb) {
+      try {
+        await this.cuadreDbService.cerrarCuadre(ahora, 'Cierre automático registrado desde kiosco a las 9:00 PM');
+        cerradaEnDb = true;
+      } catch (error) {
+        console.error('Error registrando cierre automático', error);
+      }
+    }
+
+    this.jornadaCerrada = cerradaPorHora || cerradaEnDb;
+    this.mensajeCierre = cerradaPorHora
+      ? 'La jornada terminó a las 9:00 PM.'
+      : 'La jornada fue cerrada por supervisión.';
+
+    if (this.jornadaCerrada) {
+      this.currentStep = 'inicio';
+      this.servicioSeleccionadoId = '';
+      this.ticketGenerado = null;
+      this.showSuccessPulse = false;
+      this.cancelarReinicio();
+      this.cancelarInactividad();
+    }
+
+    this.cdr.detectChanges();
+  }
+
 }

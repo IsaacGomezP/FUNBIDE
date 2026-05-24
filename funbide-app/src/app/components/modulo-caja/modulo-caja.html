@@ -67,8 +67,8 @@
             <div class="queue-item" [class.selected]="ticketSeleccionado?.id === ticket.id">
               <div class="item-code">{{ ticket.codigo }}</div>
               <div class="item-info">
-                <strong>{{ ticket.pacienteNombre }}</strong>
-                <span>{{ ticket.servicioNombre }} · Destino: {{ ticket.areaDestino }}</span>
+                <strong>{{ ticket.servicioNombre }}</strong>
+                <span>Destino: {{ ticket.areaDestino }} · Paciente por registrar en caja</span>
               </div>
               <div class="item-amount">RD$ {{ ticket.monto | number:'1.2-2' }}</div>
               <div class="item-actions">
@@ -103,8 +103,8 @@
               <span class="ticket-brand">FUNBIDE</span>
               <h3>{{ ticketSeleccionado.codigo }}</h3>
               <div class="patient-detail">
-                <p><strong>Paciente:</strong> {{ ticketSeleccionado.pacienteNombre }}</p>
-                <p><strong>Cédula:</strong> {{ ticketSeleccionado.pacienteCedula }}</p>
+                <p><strong>Paciente:</strong> {{ ticketSeleccionado.pacienteNombre || 'Pendiente de registro' }}</p>
+                <p><strong>Cédula:</strong> {{ ticketSeleccionado.pacienteCedula || 'Pendiente de registro' }}</p>
                 <p><strong>Servicio Solicitado:</strong> {{ ticketSeleccionado.servicioNombre }}</p>
               </div>
             </div>
@@ -117,9 +117,69 @@
           @if (ticketSeleccionado.estado === 'llamando') {
             <div class="info-call">
               <i class="fas fa-volume-up"></i>
-              <strong>Paciente en caja</strong>
-              <span>Confirma su presencia para iniciar la atención.</span>
-              <button class="btn-primary" (click)="iniciarAtencion()">Iniciar Atención</button>
+              <div>
+                <strong>Paciente en caja</strong>
+                <span>Llame al paciente y complete su cédula, nombre y edad antes de facturar.</span>
+              </div>
+              <button class="btn-primary" (click)="iniciarAtencion()" [disabled]="pagoEnProceso">
+                Iniciar atención
+              </button>
+            </div>
+          }
+
+          @if (ticketSeleccionado.estado === 'llamando' || ticketSeleccionado.estado === 'atendiendo') {
+            <div class="form-section">
+              <label>Registro del paciente</label>
+              <div class="row">
+                <div>
+                  <label>Cédula o ID</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="datosPaciente.cedula"
+                    (keyup.enter)="buscarPacientePorCedula()"
+                    placeholder="001-0000000-0 o ID"
+                    class="full-width" />
+                </div>
+                <div>
+                  <label>Edad</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="datosPaciente.edad"
+                    placeholder="Edad"
+                    class="full-width" />
+                </div>
+              </div>
+              <label style="margin-top: 12px;">Nombre completo</label>
+              <input
+                type="text"
+                [(ngModel)]="datosPaciente.nombre"
+                placeholder="Nombre completo del paciente"
+                class="full-width" />
+
+              @if (pacienteEncontrado) {
+                <div class="info-card" style="margin-top: 16px;">
+                  Paciente encontrado en el historial. Puede ajustar los datos si lo necesita.
+                </div>
+              }
+
+              <div class="action-buttons" style="margin-top: 16px;">
+                <button class="btn-success btn-lg" (click)="guardarDatosPacienteYContinuar()" [disabled]="pagoEnProceso || busquedaPacienteEnProceso">
+                  <i class="fas fa-id-card"></i> Guardar datos y continuar
+                </button>
+                <button class="btn-warning" type="button" (click)="datosPaciente = { cedula: '', nombre: '', edad: null }; pacienteEncontrado = false">
+                  <i class="fas fa-eraser"></i> Limpiar
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (ticketSeleccionado.estado === 'atendiendo') {
+            <div class="info-success">
+              <i class="fas fa-id-card"></i>
+              <div>
+                <strong>Paciente registrado</strong>
+                <span>La ficha ya fue completada. Proceda con el cobro y la facturación.</span>
+              </div>
             </div>
           }
 
@@ -134,6 +194,11 @@
                   <div>
                     <strong>{{ servicio.nombre }}</strong>
                     <small>{{ servicio.codigo }} · Destino: {{ servicio.area_destino }}</small>
+                    @if (servicio.aplica_seguro) {
+                      <small>Seguro: RD$ {{ (servicio.precio_subsidiado ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_contributivo ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_renacer ?? servicio.precio) | number:'1.2-2' }}</small>
+                    } @else {
+                      <small>No aplica seguro</small>
+                    }
                   </div>
                   <strong>RD$ {{ servicio.precio | number:'1.2-2' }}</strong>
                 </div>
@@ -144,10 +209,10 @@
           </div>
 
           <div class="payment-methods">
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'"><i class="fas fa-money-bill"></i> Efectivo</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'"><i class="fas fa-credit-card"></i> Tarjeta</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'"><i class="fas fa-university"></i> Transferencia</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'"><i class="fas fa-shield-alt"></i> SENASA</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'; onServicioCobroChange()"><i class="fas fa-money-bill"></i> Efectivo</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'; onServicioCobroChange()"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'; onServicioCobroChange()"><i class="fas fa-university"></i> Transferencia</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'; onServicioCobroChange()" [disabled]="!servicioPermiteSeguroSeleccionado"><i class="fas fa-shield-alt"></i> SENASA</button>
           </div>
 
           <div class="extra-fields">
@@ -162,12 +227,26 @@
               <label>Referencia de Transferencia</label>
               <input type="text" [(ngModel)]="ticketCobro.referenciaPago" placeholder="Número o referencia bancaria" />
             } @else if (ticketCobro.metodoPago === 'senasa') {
+              @if (!servicioPermiteSeguroSeleccionado) {
+                <div class="info-card">Este servicio no aplica seguro. Cambie a otro método de pago.</div>
+              } @else {
               <div class="row">
-                <label>Seguro Médico</label>
-                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA" />
+                <label>Aseguradora</label>
+                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA / ARS Renacer" />
                 <label>Número de Afiliación</label>
                 <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
               </div>
+              <div class="row">
+                <label>Tipo de cobertura</label>
+                <select [(ngModel)]="ticketCobro.planSeguro" (change)="onServicioCobroChange()">
+                  <option value="subsidiado">Subsidiado</option>
+                  <option value="contributivo">Contributivo</option>
+                  <option value="renacer">ARS Renacer</option>
+                </select>
+                <label>Cobertura seleccionada</label>
+                <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
+              </div>
+              }
             } @else {
               <div class="info-card">Confirma el pago en el datáfono y presiona "Cobrar".</div>
             }

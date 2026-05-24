@@ -2,7 +2,8 @@
 (1, 'admin', 'admin@funbide.com', 'coki2810*', 'Administrador del Sistema', 'Administrador', true, now()),
 (2, 'juanpg', 'juanpg@funbide.com', 'coki2810*', 'Juan Pérez', 'Cajero', true, now()),
 (3, 'drcarlos', 'drcarlos@funbide.com', 'coki2810*', 'Dr. Carlos Fernández', 'Medico', true, now()),
-(4, 'ana.farmacia', 'ana.farmacia@funbide.com', 'coki2810*', 'Ana Martínez', 'Farmacia', true, now())
+(4, 'ana.farmacia', 'ana.farmacia@funbide.com', 'coki2810*', 'Ana Martínez', 'Farmacia', true, now()),
+(5, 'kiosko', 'kiosko@funbide.com', 'kiosko2026*', 'Kiosko Autoservicio', 'Kiosko', true, now())
 on conflict (id) do update set
   username = excluded.username,
   email = excluded.email,
