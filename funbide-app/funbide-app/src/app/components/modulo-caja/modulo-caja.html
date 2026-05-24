@@ -67,8 +67,8 @@
             <div class="queue-item" [class.selected]="ticketSeleccionado?.id === ticket.id">
               <div class="item-code">{{ ticket.codigo }}</div>
               <div class="item-info">
-                <strong>{{ ticket.pacienteNombre }}</strong>
-                <span>{{ ticket.servicioNombre }} · Destino: {{ ticket.areaDestino }}</span>
+                <strong>{{ ticket.servicioNombre }}</strong>
+                <span>Destino: {{ ticket.areaDestino }} · Paciente por registrar en caja</span>
               </div>
               <div class="item-amount">RD$ {{ ticket.monto | number:'1.2-2' }}</div>
               <div class="item-actions">
@@ -103,8 +103,8 @@
               <span class="ticket-brand">FUNBIDE</span>
               <h3>{{ ticketSeleccionado.codigo }}</h3>
               <div class="patient-detail">
-                <p><strong>Paciente:</strong> {{ ticketSeleccionado.pacienteNombre }}</p>
-                <p><strong>Cédula:</strong> {{ ticketSeleccionado.pacienteCedula }}</p>
+                <p><strong>Paciente:</strong> {{ ticketSeleccionado.pacienteNombre || 'Pendiente de registro' }}</p>
+                <p><strong>Cédula:</strong> {{ ticketSeleccionado.pacienteCedula || 'Pendiente de registro' }}</p>
                 <p><strong>Servicio Solicitado:</strong> {{ ticketSeleccionado.servicioNombre }}</p>
               </div>
             </div>
@@ -117,9 +117,69 @@
           @if (ticketSeleccionado.estado === 'llamando') {
             <div class="info-call">
               <i class="fas fa-volume-up"></i>
-              <strong>Paciente en caja</strong>
-              <span>Confirma su presencia para iniciar la atención.</span>
-              <button class="btn-primary" (click)="iniciarAtencion()">Iniciar Atención</button>
+              <div>
+                <strong>Paciente en caja</strong>
+                <span>Llame al paciente y complete su cédula, nombre y edad antes de facturar.</span>
+              </div>
+              <button class="btn-primary" (click)="iniciarAtencion()" [disabled]="pagoEnProceso">
+                Iniciar atención
+              </button>
+            </div>
+          }
+
+          @if (ticketSeleccionado.estado === 'llamando' || ticketSeleccionado.estado === 'atendiendo') {
+            <div class="form-section">
+              <label>Registro del paciente</label>
+              <div class="row">
+                <div>
+                  <label>Cédula o ID</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="datosPaciente.cedula"
+                    (keyup.enter)="buscarPacientePorCedula()"
+                    placeholder="001-0000000-0 o ID"
+                    class="full-width" />
+                </div>
+                <div>
+                  <label>Edad</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="datosPaciente.edad"
+                    placeholder="Edad"
+                    class="full-width" />
+                </div>
+              </div>
+              <label style="margin-top: 12px;">Nombre completo</label>
+              <input
+                type="text"
+                [(ngModel)]="datosPaciente.nombre"
+                placeholder="Nombre completo del paciente"
+                class="full-width" />
+
+              @if (pacienteEncontrado) {
+                <div class="info-card" style="margin-top: 16px;">
+                  Paciente encontrado en el historial. Puede ajustar los datos si lo necesita.
+                </div>
+              }
+
+              <div class="action-buttons" style="margin-top: 16px;">
+                <button class="btn-success btn-lg" (click)="guardarDatosPacienteYContinuar()" [disabled]="pagoEnProceso || busquedaPacienteEnProceso">
+                  <i class="fas fa-id-card"></i> Guardar datos y continuar
+                </button>
+                <button class="btn-warning" type="button" (click)="datosPaciente = { cedula: '', nombre: '', edad: null }; pacienteEncontrado = false">
+                  <i class="fas fa-eraser"></i> Limpiar
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (ticketSeleccionado.estado === 'atendiendo') {
+            <div class="info-success">
+              <i class="fas fa-id-card"></i>
+              <div>
+                <strong>Paciente registrado</strong>
+                <span>La ficha ya fue completada. Proceda con el cobro y la facturación.</span>
+              </div>
             </div>
           }
 

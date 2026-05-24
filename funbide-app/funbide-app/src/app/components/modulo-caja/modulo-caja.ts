@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CobrosDbService } from '../../services/cobros-db.service';
 import { ExpedientesMedicosDbService } from '../../services/expedientes-medicos-db.service';
+import { PacientesDbService } from '../../services/pacientes-db.service';
 import { ServicioPrecioDb, ServiciosPreciosDbService } from '../../services/servicios-precios-db.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { TurnoDb, TurnosDbService } from '../../services/turnos-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 type Paso = 1 | 2 | 3;
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa';
@@ -30,6 +32,12 @@ interface TicketCobro {
   seguroNumero: string;
 }
 
+interface DatosPacienteForm {
+  cedula: string;
+  nombre: string;
+  edad: number | null;
+}
+
 interface CuentaPorCobrarDb {
   turno_id: string;
   cobro_id: string;
@@ -48,7 +56,7 @@ interface CuentaPorCobrarDb {
 }
 
 interface Notificacion {
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   title: string;
   message: string;
 }
@@ -94,6 +102,9 @@ export class ModuloCajaComponent implements OnInit {
   areaDestinoMensaje = '';
   mensajePacienteCobro: string | null = null;
   reciboUltimoCobro: ReciboCobro | null = null;
+  busquedaPacienteEnProceso = false;
+  pacienteEncontrado = false;
+  datosPaciente: DatosPacienteForm = this.crearDatosPaciente();
 
   ticketCobro: TicketCobro = this.crearTicketCobro();
 
@@ -102,6 +113,7 @@ export class ModuloCajaComponent implements OnInit {
     private serviciosPreciosDbService: ServiciosPreciosDbService,
     private cobrosDbService: CobrosDbService,
     private expedientesMedicosDbService: ExpedientesMedicosDbService,
+    private pacientesDbService: PacientesDbService,
     private supabaseService: SupabaseService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -123,6 +135,14 @@ export class ModuloCajaComponent implements OnInit {
     };
   }
 
+  private crearDatosPaciente(): DatosPacienteForm {
+    return {
+      cedula: '',
+      nombre: '',
+      edad: null
+    };
+  }
+
   private resetFlujo() {
     this.pasoActual = 1;
     this.ticketSeleccionado = null;
@@ -132,6 +152,9 @@ export class ModuloCajaComponent implements OnInit {
     this.mensajePacienteCobro = null;
     this.reciboUltimoCobro = null;
     this.ticketCobro = this.crearTicketCobro();
+    this.datosPaciente = this.crearDatosPaciente();
+    this.pacienteEncontrado = false;
+    this.busquedaPacienteEnProceso = false;
   }
 
   private async cargarDatos() {
@@ -243,6 +266,31 @@ export class ModuloCajaComponent implements OnInit {
     };
   }
 
+  private normalizarTexto(valor: string | null | undefined): string {
+    return (valor ?? '').toString().trim();
+  }
+
+  private esDatoPacientePendiente(ticket: TicketPendiente): boolean {
+    const nombre = this.normalizarTexto(ticket.pacienteNombre).toUpperCase();
+    const cedula = this.normalizarTexto(ticket.pacienteCedula).toUpperCase();
+    return !nombre || nombre === 'CLIENTE' || nombre === 'SIN REGISTRAR' || cedula === 'KIOSKO' || cedula === 'PENDIENTE' || !cedula;
+  }
+
+  private cargarPacienteDesdeTicket(ticket: TicketPendiente) {
+    if (this.esDatoPacientePendiente(ticket)) {
+      this.datosPaciente = this.crearDatosPaciente();
+      this.pacienteEncontrado = false;
+      return;
+    }
+
+    this.datosPaciente = {
+      cedula: ticket.pacienteCedula ?? '',
+      nombre: ticket.pacienteNombre ?? '',
+      edad: ticket.paciente_edad ?? null
+    };
+    this.pacienteEncontrado = true;
+  }
+
   private async crearCuentaSenasa(cuenta: CuentaPorCobrarDb) {
     const { data, error } = await this.supabaseService
       .getClient()
@@ -285,9 +333,95 @@ export class ModuloCajaComponent implements OnInit {
     this.ticketCobro = this.crearTicketCobro();
     this.ticketCobro.servicioCobroId = ticket.servicioPrecioId;
     this.busquedaServicio = '';
+    this.cargarPacienteDesdeTicket(ticket);
     this.pasoActual = 2;
     this.notificacion = null;
     this.cdr.detectChanges();
+  }
+
+  async buscarPacientePorCedula() {
+    const cedula = this.datosPaciente.cedula.trim();
+    if (!cedula) {
+      this.pacienteEncontrado = false;
+      return;
+    }
+
+    this.busquedaPacienteEnProceso = true;
+    try {
+      const paciente = await this.pacientesDbService.buscarPorCedula(cedula);
+      if (paciente) {
+        this.datosPaciente = {
+          cedula: paciente.cedula,
+          nombre: paciente.nombre,
+          edad: paciente.edad
+        };
+        this.pacienteEncontrado = true;
+        this.mostrarNotificacion('info', 'Paciente encontrado', 'La ficha fue cargada desde el historial.');
+      } else {
+        this.pacienteEncontrado = false;
+        this.mostrarNotificacion('info', 'Paciente no registrado', 'Puede completar los datos manualmente.');
+      }
+    } catch (error) {
+      console.error('Error buscando paciente:', error);
+      this.pacienteEncontrado = false;
+      this.mostrarNotificacion('error', 'Error', 'No se pudo buscar el paciente.');
+    } finally {
+      this.busquedaPacienteEnProceso = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private validarDatosPaciente(): string | null {
+    if (!this.ticketSeleccionado) return 'Debe seleccionar un ticket.';
+    if (!this.datosPaciente.cedula.trim()) return 'Ingrese la cédula o ID del paciente.';
+    if (!this.datosPaciente.nombre.trim()) return 'Ingrese el nombre completo del paciente.';
+    if (!this.datosPaciente.edad || this.datosPaciente.edad <= 0) return 'Ingrese una edad válida.';
+    return null;
+  }
+
+  async guardarDatosPacienteYContinuar() {
+    const error = this.validarDatosPaciente();
+    if (error) {
+      this.mostrarNotificacion('warning', 'Datos requeridos', error);
+      return;
+    }
+
+    if (!this.ticketSeleccionado) {
+      this.mostrarNotificacion('error', 'Error', 'Debe seleccionar un ticket.');
+      return;
+    }
+
+    try {
+      const paciente = await this.pacientesDbService.guardarPaciente({
+        cedula: this.datosPaciente.cedula.trim(),
+        nombre: this.datosPaciente.nombre.trim(),
+        edad: Number(this.datosPaciente.edad),
+        telefono: null,
+        correo: null,
+        fechaNacimiento: null
+      });
+
+      const ticketActualizado = await this.turnosDbService.actualizarTurno(this.ticketSeleccionado.id, {
+        paciente_cedula: paciente.cedula,
+        paciente_nombre: paciente.nombre,
+        paciente_edad: paciente.edad,
+        fecha_llamado: this.ticketSeleccionado.fecha_llamado ?? new Date().toISOString()
+      });
+
+      this.ticketSeleccionado = {
+        ...this.ticketSeleccionado,
+        ...ticketActualizado,
+        pacienteCedula: paciente.cedula,
+        pacienteNombre: paciente.nombre,
+        paciente_edad: paciente.edad
+      };
+
+      this.mostrarNotificacion('success', 'Datos guardados', 'La ficha del paciente fue registrada. Continúe con el cobro.');
+      await this.iniciarAtencion();
+    } catch (error) {
+      console.error('Error guardando datos del paciente:', error);
+      this.mostrarNotificacion('error', 'Error', 'No se pudieron guardar los datos del paciente.');
+    }
   }
 
   async llamarTicket(ticket: TicketPendiente) {
@@ -565,16 +699,11 @@ export class ModuloCajaComponent implements OnInit {
             <div class="total">PAGADO</div>
             <div class="footer">Gracias por preferir FUNBIDE.</div>
           </div>
-          <script>window.print();setTimeout(()=>window.close(),400);</script>
         </body>
       </html>
     `;
 
-    const ventana = window.open('', '_blank');
-    if (ventana) {
-      ventana.document.write(html);
-      ventana.document.close();
-    }
+    printHtmlInHiddenFrame(html);
   }
 
   enviarAlArea() {
@@ -592,7 +721,7 @@ export class ModuloCajaComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  mostrarNotificacion(type: 'success' | 'error' | 'info', title: string, message: string) {
+  mostrarNotificacion(type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) {
     this.notificacion = { type, title, message };
     this.cdr.detectChanges();
 

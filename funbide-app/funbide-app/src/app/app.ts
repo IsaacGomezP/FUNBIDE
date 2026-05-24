@@ -43,6 +43,11 @@ export interface User {
 })
 export class App {
   isTvRoute = window.location.pathname === '/tv' || window.location.pathname.startsWith('/tv/');
+  isKioskRoute =
+    window.location.pathname === '/kiosko-turnos' ||
+    window.location.pathname === '/caja-kiosko' ||
+    new URLSearchParams(window.location.search).get('kiosk') === 'turnos' ||
+    new URLSearchParams(window.location.search).get('kiosk') === 'caja';
   view: 'login' | 'dashboard' = 'login';
   username = '';
   password = '';
@@ -57,7 +62,7 @@ export class App {
   readonly tvUrl = '/tv/index.html';
   private readonly sessionKey = 'funbide_session_user';
 
-  private readonly roleModules: Record<string, string> = {
+  private readonly roleModules: Record<string, string | null> = {
     Cajero: 'caja',
     Farmacia: 'farmacia',
     Medico: 'medicina',
@@ -70,7 +75,7 @@ export class App {
     Mantenimiento: 'mantenimiento',
     'Supervisión': 'supervision',
     Supervision: 'supervision',
-    Administrador: 'mantenimiento'
+    Administrador: null
   };
 
   private readonly moduleCatalog: ModuleCard[] = [
@@ -148,6 +153,21 @@ export class App {
   }
 
   ngOnInit() {
+    if (this.isKioskRoute) {
+      this.isLoggedIn = true;
+      this.view = 'dashboard';
+      this.selectedModule = 'generarTurno';
+      this.visibleModules = this.moduleCatalog;
+      this.currentUser = {
+        id: 0,
+        username: 'kiosko',
+        nombre_completo: 'Caja Kiosko',
+        rol: 'Caja / Kiosko',
+        activo: true
+      };
+      return;
+    }
+
     const savedSession = localStorage.getItem(this.sessionKey);
     if (savedSession) {
       try {
@@ -194,7 +214,7 @@ export class App {
     }
 
     const roleSpecific: Record<string, string[]> = {
-      Cajero: ['caja', 'generarTurno', 'reportes'],
+      Cajero: ['caja', 'reportes'],
       Farmacia: ['farmacia', 'reportes'],
       Medico: ['medicina', 'reportes'],
       'Medicina General': ['medicina', 'reportes'],
@@ -207,7 +227,7 @@ export class App {
       Supervision: ['supervision', 'reportes']
     };
 
-    const allowed = new Set(roleSpecific[role] ?? ['medicina', 'farmacia', 'generarTurno', 'caja', 'laboratorio', 'reportes']);
+    const allowed = new Set(roleSpecific[role] ?? ['medicina', 'farmacia', 'caja', 'laboratorio', 'reportes']);
     return this.moduleCatalog.filter(module => allowed.has(module.id));
   }
 }

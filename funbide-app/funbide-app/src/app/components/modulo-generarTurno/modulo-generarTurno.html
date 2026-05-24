@@ -1,0 +1,74 @@
+<div class="kiosk-page kiosk-screen">
+  @if (notificationMessage) {
+    <div class="toast-notification" [ngClass]="notificationType">
+      <i class="fas"
+        [class.fa-check-circle]="notificationType === 'success'"
+        [class.fa-info-circle]="notificationType === 'info'"
+        [class.fa-triangle-exclamation]="notificationType === 'warning'"
+        [class.fa-circle-xmark]="notificationType === 'danger'"></i>
+      <span>{{ notificationMessage }}</span>
+    </div>
+  }
+
+  @if (currentStep === 'inicio') {
+    <section class="intro-screen">
+      <span class="eyebrow">Kiosko de turnos</span>
+      <h1>Toque Caja para comenzar</h1>
+      <p>
+        Luego verá los servicios disponibles en botones grandes.
+        Al elegir uno, el turno se imprime automaticamente.
+      </p>
+
+      <button class="btn-caja btn-caja-lg" type="button" (click)="iniciarKiosko()">
+        <i class="fas fa-cash-register"></i>
+        CAJA
+      </button>
+    </section>
+  } @else {
+    <section class="services-screen" (pointerdown)="reiniciarInactividad()" (touchstart)="reiniciarInactividad()" (mousemove)="reiniciarInactividad()">
+      <header class="services-head">
+        <span class="eyebrow">Seleccione un servicio</span>
+        <h1>¿A dónde desea dirigirse?</h1>
+        <p>Toque una opción y el ticket se imprimirá de inmediato.</p>
+      </header>
+
+      <div class="services-carousel">
+        <button type="button" class="rail-nav rail-prev" (click)="desplazarServicios(-1)" aria-label="Ver servicios anteriores">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="services-rail" #serviceRail (scroll)="reiniciarInactividad()">
+          @for (servicio of servicios; track servicio.id) {
+            <button
+              type="button"
+              class="service-card"
+              [attr.data-tone]="servicio.tone"
+              [class.is-selected]="servicioSeleccionadoId === servicio.id"
+              (click)="seleccionarServicio(servicio)">
+              <div class="service-top">
+                <span class="service-pill">{{ servicio.prefijo }}</span>
+                <i class="fas {{ servicio.icono }}"></i>
+              </div>
+              <strong>{{ servicio.nombre }}</strong>
+              <span>{{ servicio.descripcion }}</span>
+            </button>
+          }
+        </div>
+
+        <button type="button" class="rail-nav rail-next" (click)="desplazarServicios(1)" aria-label="Ver mas servicios">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (showSuccessPulse) {
+    <div class="success-burst" aria-live="polite">
+      <div class="success-burst-card">
+        <i class="fas fa-circle-check"></i>
+        <strong>Turno generado</strong>
+        <span>{{ ticketGenerado?.codigo }}</span>
+      </div>
+    </div>
+  }
+</div>

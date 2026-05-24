@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ChangeDetectorRef } from '@angular/core';
 import { CobrosDbService } from '../../services/cobros-db.service';
 import { ExpedientesMedicosDbService, ExpedienteMedicoDb, RecetaMedicaDb } from '../../services/expedientes-medicos-db.service';
+import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 interface PacienteMedicoFila {
   id: string;
@@ -652,8 +653,6 @@ export class ModuloMedicinaComponent implements OnInit, OnDestroy {
 
   generarPdf() {
     if (!this.expedienteSeleccionado) return;
-    const win = window.open('', '_blank');
-    if (!win) return;
     const paciente = this.expedienteSeleccionado;
     const fecha = new Date().toLocaleString('es-DO');
     const recetasHtml = this.recetas.length
@@ -744,9 +743,8 @@ export class ModuloMedicinaComponent implements OnInit, OnDestroy {
         <div class="signature">Firma y sello</div>
       </div></div>
     </div>
-    </div><script>window.print();setTimeout(()=>window.close(),500);</script></body></html>`;
-    win.document.write(html);
-    win.document.close();
+    </div></body></html>`;
+    printHtmlInHiddenFrame(html);
   }
 
   volver() { this.back.emit(); }

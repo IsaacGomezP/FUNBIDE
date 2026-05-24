@@ -684,6 +684,11 @@
   color: white;
 }
 
+.notification.warning {
+  background: #f59e0b;
+  color: white;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .stats-grid {

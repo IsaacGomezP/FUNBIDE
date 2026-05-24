@@ -1,3 +1,10 @@
+@if (isKioskRoute) {
+  <app-modulo-generar-turno
+    [usuarioNombre]="'Caja Kiosko'"
+    [usuarioRol]="'Caja / Kiosko'"
+  />
+}
+
 @if (isTvRoute) {
   <div class="tv-page">
     <iframe

@@ -1,0 +1,12 @@
+[build]
+  base = "funbide-app"
+  command = "npm run build"
+  publish = "dist/funbide-app/browser"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/tv"
+  to = "/tv/index.html"
+  status = 200
