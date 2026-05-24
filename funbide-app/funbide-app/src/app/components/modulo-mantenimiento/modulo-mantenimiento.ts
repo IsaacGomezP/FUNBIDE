@@ -39,11 +39,13 @@ export class ModuloMantenimientoComponent implements OnInit {
     'Administrador',
     'Cajero',
     'Kiosko',
+    'Gestor precios',
     'Farmacia',
     'Medico',
     'Medicina General',
     'Laboratorio',
     'Reportes',
+    'Cuadre',
     'Supervisión'
   ];
 

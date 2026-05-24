@@ -25,6 +25,7 @@ interface TicketPendiente extends TurnoDb {
 interface TicketCobro {
   metodoPago: MetodoPago;
   servicioCobroId: string | null;
+  planSeguro: 'subsidiado' | 'contributivo' | '';
   montoRecibido: number | null;
   referenciaPago: string;
   cambio: number;
@@ -127,6 +128,7 @@ export class ModuloCajaComponent implements OnInit {
     return {
       metodoPago: 'efectivo',
       servicioCobroId: null,
+      planSeguro: '',
       montoRecibido: null,
       referenciaPago: '',
       cambio: 0,
@@ -314,8 +316,40 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   get totalCobroActual(): number {
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
-    return servicio?.precio ?? this.ticketSeleccionado?.monto ?? 0;
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio) return this.ticketSeleccionado?.monto ?? 0;
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio.aplica_seguro) {
+      if (this.ticketCobro.planSeguro === 'subsidiado' && servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
+        return Number(servicio.precio_subsidiado);
+      }
+      if (this.ticketCobro.planSeguro === 'contributivo' && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
+        return Number(servicio.precio_contributivo);
+      }
+      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
+    }
+
+    return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
+  }
+
+  get servicioSeleccionadoCobro(): ServicioPrecioDb | null {
+    return this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId) ?? null;
+  }
+
+  get servicioPermiteSeguroSeleccionado(): boolean {
+    return !!this.servicioSeleccionadoCobro?.aplica_seguro;
+  }
+
+  get precioSeguroDisponible(): number {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio || !servicio.aplica_seguro) return 0;
+    if (this.ticketCobro.planSeguro === 'subsidiado') {
+      return Number(servicio.precio_subsidiado ?? servicio.precio);
+    }
+    if (this.ticketCobro.planSeguro === 'contributivo') {
+      return Number(servicio.precio_contributivo ?? servicio.precio);
+    }
+    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
   }
 
   volver() {
@@ -334,6 +368,7 @@ export class ModuloCajaComponent implements OnInit {
     this.ticketCobro.servicioCobroId = ticket.servicioPrecioId;
     this.busquedaServicio = '';
     this.cargarPacienteDesdeTicket(ticket);
+    this.onServicioCobroChange();
     this.pasoActual = 2;
     this.notificacion = null;
     this.cdr.detectChanges();
@@ -470,8 +505,22 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   onServicioCobroChange() {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (servicio && !servicio.aplica_seguro && this.ticketCobro.metodoPago === 'senasa') {
+      this.ticketCobro.metodoPago = 'efectivo';
+      this.ticketCobro.planSeguro = '';
+      this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica seguro. Se ajustó el método de pago a efectivo.');
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
+      if (!this.ticketCobro.planSeguro) {
+        this.ticketCobro.planSeguro = servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined ? 'subsidiado' : 'contributivo';
+      }
+    } else if (this.ticketCobro.metodoPago !== 'senasa') {
+      this.ticketCobro.planSeguro = '';
+    }
+
     this.calcularCambio();
-    const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
     if (servicio) {
       this.areaDestinoMensaje = servicio.area_destino;
     }
@@ -506,6 +555,11 @@ export class ModuloCajaComponent implements OnInit {
 
     if (this.ticketCobro.metodoPago === 'transferencia' && !this.ticketCobro.referenciaPago.trim()) {
       this.mostrarNotificacion('error', 'Referencia requerida', 'Ingrese la referencia de la transferencia.');
+      return;
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.servicioPermiteSeguroSeleccionado) {
+      this.mostrarNotificacion('error', 'Seguro no disponible', 'El servicio seleccionado no aplica seguro.');
       return;
     }
 

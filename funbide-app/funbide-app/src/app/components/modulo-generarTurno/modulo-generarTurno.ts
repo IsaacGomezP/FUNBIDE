@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TurnosDbService } from '../../services/turnos-db.service';
+import { CuadreCajaDbService } from '../../services/cuadre-caja-db.service';
 import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 interface ServicioTurno {
@@ -43,6 +44,8 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   showSuccessPulse = false;
   notificationMessage = '';
   notificationType: 'success' | 'info' | 'warning' | 'danger' | '' = '';
+  jornadaCerrada = false;
+  mensajeCierre = '';
 
   servicios: ServicioTurno[] = [
     { id: 'medicina-general', nombre: 'Medicina General', categoria: 'Consulta', prefijo: 'MG', icono: 'fa-stethoscope', descripcion: 'Atencion medica general', tone: 'blue' },
@@ -57,18 +60,23 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   private notificationTimer: ReturnType<typeof setTimeout> | null = null;
   private resetTimer: ReturnType<typeof setTimeout> | null = null;
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+  private jornadaTimer: ReturnType<typeof setInterval> | null = null;
   private readonly inactivityTimeoutMs = 25000;
 
   constructor(
     private turnosDbService: TurnosDbService,
+    private cuadreDbService: CuadreCajaDbService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
 
   ngOnInit() {
-    if (this.usuarioRol === 'Kiosko' || this.usuarioRol === 'Caja / Kiosko') {
-      queueMicrotask(() => this.iniciarKiosko());
-    }
+    void this.verificarJornada().then(() => {
+      this.jornadaTimer = setInterval(() => void this.verificarJornada(), 60000);
+      if (!this.jornadaCerrada && (this.usuarioRol === 'Kiosko' || this.usuarioRol === 'Caja / Kiosko')) {
+        queueMicrotask(() => this.iniciarKiosko());
+      }
+    });
   }
 
   get servicioSeleccionado(): ServicioTurno | null {
@@ -84,6 +92,10 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   }
 
   iniciarKiosko() {
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No es posible generar turnos después del cierre.');
+      return;
+    }
     this.cancelarReinicio();
     this.cancelarInactividad();
     this.currentStep = 'servicios';
@@ -98,6 +110,10 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
 
   async seleccionarServicio(servicio: ServicioTurno) {
     if (this.isSavingTurno) return;
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No se pueden generar nuevos turnos.');
+      return;
+    }
 
     this.servicioSeleccionadoId = servicio.id;
     this.cancelarInactividad();
@@ -107,6 +123,10 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   async generarTicket(servicio: ServicioTurno) {
     if (!servicio) {
       this.showNotification('warning', 'Campo requerido', 'Seleccione un servicio');
+      return;
+    }
+    if (this.jornadaCerrada) {
+      this.showNotification('warning', 'Jornada cerrada', this.mensajeCierre || 'No se pueden generar nuevos turnos.');
       return;
     }
 
@@ -254,6 +274,7 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
     if (this.notificationTimer) clearTimeout(this.notificationTimer);
     if (this.resetTimer) clearTimeout(this.resetTimer);
     if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    if (this.jornadaTimer) clearInterval(this.jornadaTimer);
   }
 
   private programarReinicio() {
@@ -281,7 +302,7 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
     this.cancelarInactividad();
     this.inactivityTimer = setTimeout(() => {
       this.ngZone.run(() => {
-        if (this.currentStep === 'servicios' && !this.ticketGenerado && !this.isSavingTurno) {
+        if (this.currentStep === 'servicios' && !this.ticketGenerado && !this.isSavingTurno && !this.jornadaCerrada) {
           this.limpiarFormulario();
         }
       });
@@ -293,6 +314,43 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
       clearTimeout(this.inactivityTimer);
       this.inactivityTimer = null;
     }
+  }
+
+  private async verificarJornada() {
+    const ahora = new Date();
+    const cerradaPorHora = ahora.getHours() >= 21;
+
+    let cerradaEnDb = false;
+    try {
+      cerradaEnDb = await this.cuadreDbService.jornadaCerradaHoy(ahora);
+    } catch (error) {
+      console.error('Error verificando cierre de jornada', error);
+    }
+
+    if (cerradaPorHora && !cerradaEnDb) {
+      try {
+        await this.cuadreDbService.cerrarCuadre(ahora, 'Cierre automático registrado desde kiosco a las 9:00 PM');
+        cerradaEnDb = true;
+      } catch (error) {
+        console.error('Error registrando cierre automático', error);
+      }
+    }
+
+    this.jornadaCerrada = cerradaPorHora || cerradaEnDb;
+    this.mensajeCierre = cerradaPorHora
+      ? 'La jornada terminó a las 9:00 PM.'
+      : 'La jornada fue cerrada por supervisión.';
+
+    if (this.jornadaCerrada) {
+      this.currentStep = 'inicio';
+      this.servicioSeleccionadoId = '';
+      this.ticketGenerado = null;
+      this.showSuccessPulse = false;
+      this.cancelarReinicio();
+      this.cancelarInactividad();
+    }
+
+    this.cdr.detectChanges();
   }
 
 }

@@ -67,6 +67,23 @@
   color: #51627b;
 }
 
+.closed-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  border-radius: 20px;
+  background: rgba(29, 57, 115, 0.08);
+  color: #10233d;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 800;
+}
+
+.closed-card i {
+  color: #1d3973;
+  font-size: 1.6rem;
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;

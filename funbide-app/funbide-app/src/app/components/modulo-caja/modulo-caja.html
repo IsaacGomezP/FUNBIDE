@@ -194,6 +194,11 @@
                   <div>
                     <strong>{{ servicio.nombre }}</strong>
                     <small>{{ servicio.codigo }} · Destino: {{ servicio.area_destino }}</small>
+                    @if (servicio.aplica_seguro) {
+                      <small>Seguro: RD$ {{ (servicio.precio_subsidiado ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_contributivo ?? servicio.precio) | number:'1.2-2' }}</small>
+                    } @else {
+                      <small>No aplica seguro</small>
+                    }
                   </div>
                   <strong>RD$ {{ servicio.precio | number:'1.2-2' }}</strong>
                 </div>
@@ -204,10 +209,10 @@
           </div>
 
           <div class="payment-methods">
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'"><i class="fas fa-money-bill"></i> Efectivo</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'"><i class="fas fa-credit-card"></i> Tarjeta</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'"><i class="fas fa-university"></i> Transferencia</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'"><i class="fas fa-shield-alt"></i> SENASA</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'; onServicioCobroChange()"><i class="fas fa-money-bill"></i> Efectivo</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'; onServicioCobroChange()"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'; onServicioCobroChange()"><i class="fas fa-university"></i> Transferencia</button>
+            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'; onServicioCobroChange()" [disabled]="!servicioPermiteSeguroSeleccionado"><i class="fas fa-shield-alt"></i> SENASA</button>
           </div>
 
           <div class="extra-fields">
@@ -222,12 +227,25 @@
               <label>Referencia de Transferencia</label>
               <input type="text" [(ngModel)]="ticketCobro.referenciaPago" placeholder="Número o referencia bancaria" />
             } @else if (ticketCobro.metodoPago === 'senasa') {
+              @if (!servicioPermiteSeguroSeleccionado) {
+                <div class="info-card">Este servicio no aplica seguro. Cambie a otro método de pago.</div>
+              } @else {
               <div class="row">
                 <label>Seguro Médico</label>
                 <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA" />
                 <label>Número de Afiliación</label>
                 <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
               </div>
+              <div class="row">
+                <label>Tipo de cobertura</label>
+                <select [(ngModel)]="ticketCobro.planSeguro" (change)="onServicioCobroChange()">
+                  <option value="subsidiado">Subsidiado</option>
+                  <option value="contributivo">Contributivo</option>
+                </select>
+                <label>Cobertura seleccionada</label>
+                <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
+              </div>
+              }
             } @else {
               <div class="info-card">Confirma el pago en el datáfono y presiona "Cobrar".</div>
             }

@@ -10,7 +10,21 @@
     </div>
   }
 
-  @if (currentStep === 'inicio') {
+  @if (jornadaCerrada) {
+    <section class="intro-screen">
+      <span class="eyebrow">Jornada cerrada</span>
+      <h1>La caja terminó su día</h1>
+      <p>
+        Ya no se generan más turnos para esta fecha.
+        La jornada se cerró automáticamente a las 9:00 PM o por supervisión.
+      </p>
+
+      <div class="closed-card">
+        <i class="fas fa-lock"></i>
+        <strong>{{ mensajeCierre || 'Sistema fuera de horario' }}</strong>
+      </div>
+    </section>
+  } @else if (currentStep === 'inicio') {
     <section class="intro-screen">
       <span class="eyebrow">Kiosko de turnos</span>
       <h1>Toque Caja para comenzar</h1>

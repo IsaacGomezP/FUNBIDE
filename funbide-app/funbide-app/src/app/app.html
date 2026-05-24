@@ -66,6 +66,22 @@
   />
 }
 
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'gestorPrecios') {
+  <app-modulo-gestor-precios
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
+@if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'cuadre') {
+  <app-modulo-cuadre
+    [usuarioNombre]="currentUser.nombre_completo"
+    [usuarioRol]="currentUser.rol"
+    (back)="volverAlDashboard()"
+  />
+}
+
 @if (!isTvRoute && !isKioskRoute && view === 'dashboard' && isLoggedIn && currentUser && selectedModule === 'medicina') {
   <app-modulo-medicina
     [usuarioNombre]="currentUser.nombre_completo"
