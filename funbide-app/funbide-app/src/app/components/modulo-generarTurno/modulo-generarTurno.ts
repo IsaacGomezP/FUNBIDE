@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TurnosDbService } from '../../services/turnos-db.service';
 import { printHtmlInHiddenFrame } from '../../utils/print-html';
@@ -29,7 +29,7 @@ interface TicketGenerado {
   templateUrl: './modulo-generarTurno.html',
   styleUrls: ['./modulo-generarTurno.css']
 })
-export class ModuloGenerarTurnoComponent implements OnDestroy {
+export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   @Output() back = new EventEmitter<void>();
   @Input() usuarioNombre = 'Recepcion';
   @Input() usuarioRol = 'Caja / Kiosko';
@@ -64,6 +64,12 @@ export class ModuloGenerarTurnoComponent implements OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
+
+  ngOnInit() {
+    if (this.usuarioRol === 'Caja / Kiosko') {
+      queueMicrotask(() => this.iniciarKiosko());
+    }
+  }
 
   get servicioSeleccionado(): ServicioTurno | null {
     return this.servicios.find((servicio) => servicio.id === this.servicioSeleccionadoId) || null;
