@@ -109,10 +109,8 @@ export class App {
     const result = await this.authService.login(this.username.trim(), this.password.trim());
 
     if (result.success && result.user) {
+      const isKioskUser = this.isKioskUser(result.user.username, result.user.rol);
       this.isLoggedIn = true;
-      this.view = 'dashboard';
-      this.selectedModule = this.getDefaultModuleForRole(result.user.rol);
-      this.visibleModules = this.getVisibleModulesForRole(result.user.rol);
       this.currentUser = {
         id: result.user.id,
         username: result.user.username,
@@ -123,6 +121,19 @@ export class App {
       localStorage.setItem(this.sessionKey, JSON.stringify(this.currentUser));
       this.username = '';
       this.password = '';
+
+      if (isKioskUser) {
+        this.view = 'dashboard';
+        this.selectedModule = 'generarTurno';
+        this.visibleModules = this.moduleCatalog.filter(module => module.id === 'generarTurno');
+        this.cdr.detectChanges();
+        window.location.href = '/caja-kiosko?kiosk=caja';
+        return;
+      }
+
+      this.view = 'dashboard';
+      this.selectedModule = this.getDefaultModuleForRole(result.user.rol);
+      this.visibleModules = this.getVisibleModulesForRole(result.user.rol);
     } else {
       this.loginError = result.error || 'Usuario o contraseña incorrectos';
     }
@@ -236,6 +247,12 @@ export class App {
 
     const allowed = new Set(roleSpecific[role] ?? ['medicina', 'farmacia', 'caja', 'laboratorio', 'reportes']);
     return this.moduleCatalog.filter(module => allowed.has(module.id));
+  }
+
+  private isKioskUser(username: string, role: string): boolean {
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedRole = role.trim().toLowerCase().replace(/\s+/g, ' ');
+    return normalizedUsername === 'kiosko' || normalizedRole === 'caja / kiosko';
   }
 }
 
