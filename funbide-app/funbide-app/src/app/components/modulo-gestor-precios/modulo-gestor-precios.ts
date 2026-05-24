@@ -247,6 +247,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
     let secuencia = 0;
     let categoriaActual = '';
     let areaActual = '';
+    let prefijoActual = '';
 
     for (const row of rows) {
       const nombreOriginal = this.textoCelda(row?.[0]);
@@ -258,15 +259,22 @@ export class ModuloGestorPreciosComponent implements OnInit {
 
       const esEncabezado = precioBase === null && precioSubsidiado === null && precioContributivo === null;
       if (esEncabezado) {
-        const titulo = this.tituloCategoria(nombreOriginal);
-        categoriaActual = titulo;
-        areaActual = titulo;
+        if (this.esSubgrupoExcel(nombreOriginal)) {
+          continue;
+        }
+
+        const seccion = this.obtenerSeccionExcel(nombreOriginal);
+        if (seccion) {
+          categoriaActual = seccion.categoria;
+          areaActual = seccion.area;
+          prefijoActual = seccion.prefijo;
+        }
         continue;
       }
 
       const nombre = this.tituloServicio(nombreOriginal);
       secuencia += 1;
-      const codigo = this.generarCodigo(categoriaActual || areaActual || nombre, secuencia);
+      const codigo = this.generarCodigoDesdePrefijo(prefijoActual || categoriaActual || areaActual || nombre, secuencia);
       const aplicaSeguro = !this.filaSinSeguro(row) && (precioSubsidiado !== null || precioContributivo !== null);
 
       registros.push({
@@ -288,6 +296,24 @@ export class ModuloGestorPreciosComponent implements OnInit {
   private filaSinSeguro(row: any[]): boolean {
     const texto = [row?.[1], row?.[2], row?.[3]].map(value => this.textoCelda(value).toLowerCase()).join(' ');
     return texto.includes('no aplica seguro') || texto.includes('sin seguro');
+  }
+
+  private esSubgrupoExcel(valor: string): boolean {
+    return this.claveNormalizada(valor).startsWith('subgrupo');
+  }
+
+  private obtenerSeccionExcel(valor: string): { area: string; categoria: string; prefijo: string } | null {
+    const key = this.claveNormalizada(valor);
+
+    if (key === 'consultasmedicas') return { area: 'Consultas Médicas', categoria: 'Consultas Médicas', prefijo: 'CM' };
+    if (key === 'sonografias') return { area: 'Sonografías', categoria: 'Sonografías', prefijo: 'SON' };
+    if (key === 'procedimientosdontologicos') return { area: 'Procedimientos Odontológicos', categoria: 'Procedimientos Odontológicos', prefijo: 'ODO' };
+    if (key.includes('apoyodiagnosticodx')) return { area: 'Apoyo Diagnóstico (Dx)', categoria: 'Apoyo Diagnóstico (Dx)', prefijo: 'DX' };
+    if (key === 'obturacion') return { area: 'Obturación', categoria: 'Obturación', prefijo: 'OBT' };
+    if (key === 'ortodoncia') return { area: 'Ortodoncia', categoria: 'Ortodoncia', prefijo: 'ORT' };
+    if (key === 'protesis') return { area: 'Prótesis', categoria: 'Prótesis', prefijo: 'PRO' };
+    if (key.startsWith('grupo') && key.includes('apoyodiagnostico')) return { area: 'Apoyo Diagnóstico (Dx)', categoria: 'Apoyo Diagnóstico (Dx)', prefijo: 'DX' };
+    return null;
   }
 
   private parseMonto(valor: any): number | null {
@@ -328,6 +354,14 @@ export class ModuloGestorPreciosComponent implements OnInit {
       .slice(0, 4)
       .toUpperCase() || 'SRV';
     return `${prefijo}${String(secuencia).padStart(3, '0')}`;
+  }
+
+  private generarCodigoDesdePrefijo(base: string, secuencia: number): string {
+    const seccion = this.obtenerSeccionExcel(base);
+    if (seccion) {
+      return `${seccion.prefijo}${String(secuencia).padStart(3, '0')}`;
+    }
+    return this.generarCodigo(base, secuencia);
   }
 
   private claveNormalizada(valor: string) {
