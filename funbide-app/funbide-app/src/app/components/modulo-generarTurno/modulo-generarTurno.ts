@@ -32,7 +32,7 @@ interface TicketGenerado {
 export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   @Output() back = new EventEmitter<void>();
   @Input() usuarioNombre = 'Recepcion';
-  @Input() usuarioRol = 'Caja / Kiosko';
+  @Input() usuarioRol = 'Kiosko';
   @ViewChild('serviceRail') serviceRail?: ElementRef<HTMLDivElement>;
 
   currentDate = new Date();
@@ -66,7 +66,7 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    if (this.usuarioRol === 'Caja / Kiosko') {
+    if (this.usuarioRol === 'Kiosko' || this.usuarioRol === 'Caja / Kiosko') {
       queueMicrotask(() => this.iniciarKiosko());
     }
   }

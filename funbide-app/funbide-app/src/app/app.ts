@@ -65,7 +65,7 @@ export class App {
 
   private readonly roleModules: Record<string, string | null> = {
     Cajero: 'caja',
-    'Caja / Kiosko': 'generarTurno',
+    Kiosko: 'generarTurno',
     Farmacia: 'farmacia',
     Medico: 'medicina',
     'Medicina General': 'medicina',
@@ -127,7 +127,7 @@ export class App {
         this.selectedModule = 'generarTurno';
         this.visibleModules = this.moduleCatalog.filter(module => module.id === 'generarTurno');
         this.cdr.detectChanges();
-        window.location.href = '/caja-kiosko?kiosk=caja';
+        window.location.replace('/caja-kiosko?kiosk=caja');
         return;
       }
 
@@ -170,12 +170,12 @@ export class App {
       this.isLoggedIn = true;
       this.view = 'dashboard';
       this.selectedModule = 'generarTurno';
-      this.visibleModules = this.moduleCatalog;
+      this.visibleModules = this.moduleCatalog.filter(module => module.id === 'generarTurno');
       this.currentUser = {
         id: 0,
         username: 'kiosko',
         nombre_completo: 'Caja Kiosko',
-        rol: 'Caja / Kiosko',
+        rol: 'Kiosko',
         activo: true
       };
       return;
@@ -226,13 +226,17 @@ export class App {
       return this.moduleCatalog.filter(module => module.id === 'generarTurno');
     }
 
+    if (role === 'Kiosko') {
+      return this.moduleCatalog.filter(module => module.id === 'generarTurno');
+    }
+
     if (role === 'Administrador') {
       return this.moduleCatalog;
     }
 
     const roleSpecific: Record<string, string[]> = {
       Cajero: ['caja', 'reportes'],
-      'Caja / Kiosko': ['generarTurno'],
+      Kiosko: ['generarTurno'],
       Farmacia: ['farmacia', 'reportes'],
       Medico: ['medicina', 'reportes'],
       'Medicina General': ['medicina', 'reportes'],
@@ -252,7 +256,7 @@ export class App {
   private isKioskUser(username: string, role: string): boolean {
     const normalizedUsername = username.trim().toLowerCase();
     const normalizedRole = role.trim().toLowerCase().replace(/\s+/g, ' ');
-    return normalizedUsername === 'kiosko' || normalizedRole === 'caja / kiosko';
+    return normalizedUsername === 'kiosko' || normalizedRole === 'kiosko' || normalizedRole === 'caja / kiosko';
   }
 }
 
