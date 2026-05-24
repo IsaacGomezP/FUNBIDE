@@ -13,6 +13,7 @@ interface ServicioPrecioForm {
   precio: number;
   precio_subsidiado: number | null;
   precio_contributivo: number | null;
+  precio_renacer: number | null;
   aplica_seguro: boolean;
   activo: boolean;
 }
@@ -69,6 +70,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio: 0,
       precio_subsidiado: null,
       precio_contributivo: null,
+      precio_renacer: null,
       aplica_seguro: false,
       activo: true
     };
@@ -85,7 +87,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
         servicio.categoria,
         servicio.precio.toString(),
         servicio.precio_subsidiado?.toString() ?? '',
-        servicio.precio_contributivo?.toString() ?? ''
+        servicio.precio_contributivo?.toString() ?? '',
+        servicio.precio_renacer?.toString() ?? ''
       ].join(' ').toLowerCase();
       return bloque.includes(texto);
     });
@@ -130,6 +133,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio: Number(servicio.precio ?? 0),
       precio_subsidiado: servicio.precio_subsidiado ?? null,
       precio_contributivo: servicio.precio_contributivo ?? null,
+      precio_renacer: servicio.precio_renacer ?? null,
       aplica_seguro: !!servicio.aplica_seguro,
       activo: servicio.activo
     };
@@ -159,6 +163,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
         precio: Number(this.formulario.precio),
         precio_subsidiado: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_subsidiado) : null,
         precio_contributivo: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_contributivo) : null,
+        precio_renacer: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_renacer) : null,
         aplica_seguro: this.formulario.aplica_seguro,
         activo: this.formulario.activo
       };
@@ -256,8 +261,9 @@ export class ModuloGestorPreciosComponent implements OnInit {
       const precioBase = this.parseMonto(row?.[1]);
       const precioSubsidiado = this.parseMonto(row?.[2]);
       const precioContributivo = this.parseMonto(row?.[3]);
+      const precioRenacer = this.parseMonto(row?.[4]);
 
-      const esEncabezado = precioBase === null && precioSubsidiado === null && precioContributivo === null;
+      const esEncabezado = precioBase === null && precioSubsidiado === null && precioContributivo === null && precioRenacer === null;
       if (esEncabezado) {
         if (this.esSubgrupoExcel(nombreOriginal)) {
           continue;
@@ -275,7 +281,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       const nombre = this.tituloServicio(nombreOriginal);
       secuencia += 1;
       const codigo = this.generarCodigoDesdePrefijo(prefijoActual || categoriaActual || areaActual || nombre, secuencia);
-      const aplicaSeguro = !this.filaSinSeguro(row) && (precioSubsidiado !== null || precioContributivo !== null);
+      const aplicaSeguro = !this.filaSinSeguro(row) && (precioSubsidiado !== null || precioContributivo !== null || precioRenacer !== null);
 
       registros.push({
         codigo,
@@ -285,6 +291,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
         precio: precioBase ?? 0,
         precio_subsidiado: aplicaSeguro ? precioSubsidiado : null,
         precio_contributivo: aplicaSeguro ? precioContributivo : null,
+        precio_renacer: aplicaSeguro ? precioRenacer : null,
         aplica_seguro: aplicaSeguro,
         activo: true
       });

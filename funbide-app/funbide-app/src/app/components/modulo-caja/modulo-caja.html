@@ -195,7 +195,7 @@
                     <strong>{{ servicio.nombre }}</strong>
                     <small>{{ servicio.codigo }} · Destino: {{ servicio.area_destino }}</small>
                     @if (servicio.aplica_seguro) {
-                      <small>Seguro: RD$ {{ (servicio.precio_subsidiado ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_contributivo ?? servicio.precio) | number:'1.2-2' }}</small>
+                      <small>Seguro: RD$ {{ (servicio.precio_subsidiado ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_contributivo ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_renacer ?? servicio.precio) | number:'1.2-2' }}</small>
                     } @else {
                       <small>No aplica seguro</small>
                     }
@@ -231,8 +231,8 @@
                 <div class="info-card">Este servicio no aplica seguro. Cambie a otro método de pago.</div>
               } @else {
               <div class="row">
-                <label>Seguro Médico</label>
-                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA" />
+                <label>Aseguradora</label>
+                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA / ARS Renacer" />
                 <label>Número de Afiliación</label>
                 <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
               </div>
@@ -241,6 +241,7 @@
                 <select [(ngModel)]="ticketCobro.planSeguro" (change)="onServicioCobroChange()">
                   <option value="subsidiado">Subsidiado</option>
                   <option value="contributivo">Contributivo</option>
+                  <option value="renacer">ARS Renacer</option>
                 </select>
                 <label>Cobertura seleccionada</label>
                 <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />

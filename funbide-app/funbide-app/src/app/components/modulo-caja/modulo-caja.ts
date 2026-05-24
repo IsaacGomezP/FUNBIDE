@@ -11,6 +11,7 @@ import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 type Paso = 1 | 2 | 3;
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa';
+type PlanSeguro = 'subsidiado' | 'contributivo' | 'renacer' | '';
 
 interface TicketPendiente extends TurnoDb {
   monto: number;
@@ -25,7 +26,7 @@ interface TicketPendiente extends TurnoDb {
 interface TicketCobro {
   metodoPago: MetodoPago;
   servicioCobroId: string | null;
-  planSeguro: 'subsidiado' | 'contributivo' | '';
+  planSeguro: PlanSeguro;
   montoRecibido: number | null;
   referenciaPago: string;
   cambio: number;
@@ -326,7 +327,10 @@ export class ModuloCajaComponent implements OnInit {
       if (this.ticketCobro.planSeguro === 'contributivo' && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
         return Number(servicio.precio_contributivo);
       }
-      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
+      if (this.ticketCobro.planSeguro === 'renacer' && servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
+        return Number(servicio.precio_renacer);
+      }
+      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
     }
 
     return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
@@ -349,7 +353,23 @@ export class ModuloCajaComponent implements OnInit {
     if (this.ticketCobro.planSeguro === 'contributivo') {
       return Number(servicio.precio_contributivo ?? servicio.precio);
     }
-    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
+    if (this.ticketCobro.planSeguro === 'renacer') {
+      return Number(servicio.precio_renacer ?? servicio.precio);
+    }
+    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
+  }
+
+  get nombreAseguradoraSeleccionada(): string {
+    switch (this.ticketCobro.planSeguro) {
+      case 'subsidiado':
+        return 'SENASA SUBSIDIADO';
+      case 'contributivo':
+        return 'SENASA CONTRIBUTIVO';
+      case 'renacer':
+        return 'ARS RENACER';
+      default:
+        return '';
+    }
   }
 
   volver() {
@@ -514,10 +534,22 @@ export class ModuloCajaComponent implements OnInit {
 
     if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
       if (!this.ticketCobro.planSeguro) {
-        this.ticketCobro.planSeguro = servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined ? 'subsidiado' : 'contributivo';
+        if (servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
+          this.ticketCobro.planSeguro = 'subsidiado';
+        } else if (servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
+          this.ticketCobro.planSeguro = 'contributivo';
+        } else if (servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
+          this.ticketCobro.planSeguro = 'renacer';
+        }
       }
     } else if (this.ticketCobro.metodoPago !== 'senasa') {
       this.ticketCobro.planSeguro = '';
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
+      this.ticketCobro.seguroNombre = this.nombreAseguradoraSeleccionada || this.ticketCobro.seguroNombre || 'SENASA';
+    } else {
+      this.ticketCobro.seguroNombre = '';
     }
 
     this.calcularCambio();
@@ -565,6 +597,11 @@ export class ModuloCajaComponent implements OnInit {
 
     if (this.ticketCobro.metodoPago === 'senasa' && !this.ticketCobro.seguroNumero.trim()) {
       this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el nÃºmero de afiliaciÃ³n del seguro.');
+      return;
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.nombreAseguradoraSeleccionada) {
+      this.mostrarNotificacion('error', 'Cobertura requerida', 'Seleccione una cobertura de seguro.');
       return;
     }
 

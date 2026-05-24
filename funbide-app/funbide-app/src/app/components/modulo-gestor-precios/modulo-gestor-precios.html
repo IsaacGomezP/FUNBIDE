@@ -89,6 +89,10 @@
           <label>Precio contributivo</label>
           <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_contributivo" [disabled]="!formulario.aplica_seguro">
         </div>
+        <div class="field" [class.disabled]="!formulario.aplica_seguro">
+          <label>Precio ARS Renacer</label>
+          <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_renacer" [disabled]="!formulario.aplica_seguro">
+        </div>
       </div>
 
       <label class="switch">
@@ -136,6 +140,7 @@
                   @if (servicio.aplica_seguro) {
                     <span>Subsidiado: RD$ {{ (servicio.precio_subsidiado ?? 0) | number:'1.2-2' }}</span>
                     <span>Contributivo: RD$ {{ (servicio.precio_contributivo ?? 0) | number:'1.2-2' }}</span>
+                    <span>ARS Renacer: RD$ {{ (servicio.precio_renacer ?? 0) | number:'1.2-2' }}</span>
                   } @else {
                     <span class="no-insurance">No aplica seguro</span>
                   }
