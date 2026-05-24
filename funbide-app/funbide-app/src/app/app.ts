@@ -65,6 +65,7 @@ export class App {
 
   private readonly roleModules: Record<string, string | null> = {
     Cajero: 'caja',
+    'Caja / Kiosko': 'generarTurno',
     Farmacia: 'farmacia',
     Medico: 'medicina',
     'Medicina General': 'medicina',
@@ -210,12 +211,17 @@ export class App {
   }
 
   private getVisibleModulesForRole(role: string): ModuleCard[] {
+    if (role === 'Caja / Kiosko') {
+      return this.moduleCatalog.filter(module => module.id === 'generarTurno');
+    }
+
     if (role === 'Administrador') {
       return this.moduleCatalog;
     }
 
     const roleSpecific: Record<string, string[]> = {
       Cajero: ['caja', 'reportes'],
+      'Caja / Kiosko': ['generarTurno'],
       Farmacia: ['farmacia', 'reportes'],
       Medico: ['medicina', 'reportes'],
       'Medicina General': ['medicina', 'reportes'],
