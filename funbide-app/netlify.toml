@@ -1,7 +1,7 @@
 [build]
-  base = "funbide-app/funbide-app"
-  command = "npm run build"
-  publish = "dist/funbide-app/browser"
+  base = "funbide-app"
+  command = "npm --prefix funbide-app/funbide-app run build"
+  publish = "funbide-app/funbide-app/dist/funbide-app/browser"
 
 [build.environment]
   NODE_VERSION = "20"
