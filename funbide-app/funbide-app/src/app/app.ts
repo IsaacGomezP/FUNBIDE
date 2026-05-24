@@ -42,10 +42,11 @@ export interface User {
   styleUrls: ['./app.css']
 })
 export class App {
-  isTvRoute = window.location.pathname === '/tv' || window.location.pathname.startsWith('/tv/');
+  private readonly normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  isTvRoute = this.normalizedPathname === '/tv' || this.normalizedPathname.startsWith('/tv/');
   isKioskRoute =
-    window.location.pathname === '/kiosko-turnos' ||
-    window.location.pathname === '/caja-kiosko' ||
+    this.normalizedPathname === '/kiosko-turnos' ||
+    this.normalizedPathname === '/caja-kiosko' ||
     new URLSearchParams(window.location.search).get('kiosk') === 'turnos' ||
     new URLSearchParams(window.location.search).get('kiosk') === 'caja';
   view: 'login' | 'dashboard' = 'login';
