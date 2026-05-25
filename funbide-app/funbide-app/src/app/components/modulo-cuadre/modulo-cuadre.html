@@ -11,6 +11,10 @@
         <i class="fas fa-rotate"></i>
         <span>Actualizar</span>
       </button>
+      <button class="ghost-btn" (click)="exportarExcel()" [disabled]="exportando || loading">
+        <i class="fas" [ngClass]="exportando ? 'fa-spinner fa-spin' : 'fa-file-excel'"></i>
+        <span>{{ exportando ? 'Exportando...' : 'Excel histórico' }}</span>
+      </button>
       <button class="back-btn" (click)="volver()">
         <i class="fas fa-arrow-left"></i>
         <span>Volver</span>
@@ -123,6 +127,32 @@
             <span>Al llegar las 9:00 PM el sistema registrará el cierre de jornada.</span>
           </div>
         }
+
+        <div class="history-panel">
+          <div class="panel-head">
+            <h3>Histórico de cuadres</h3>
+            <span>Últimos registros guardados</span>
+          </div>
+
+          @if (historial.length === 0) {
+            <div class="empty-state">No hay histórico de cuadre disponible.</div>
+          } @else {
+            <div class="history-table">
+              @for (item of historial; track item.fecha) {
+                <div class="history-row">
+                  <div class="history-main">
+                    <strong>{{ item.fecha | date:'dd/MM/yyyy' }}</strong>
+                    <small>{{ item.estado_texto }} · {{ item.total_turnos }} turnos</small>
+                  </div>
+                  <div class="history-values">
+                    <span>RD$ {{ item.total_ingresos | number:'1.2-2' }}</span>
+                    <small>{{ item.hora_cierre ? (item.hora_cierre | date:'shortTime') : 'Sin cierre' }}</small>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
       }
     </article>
   </section>

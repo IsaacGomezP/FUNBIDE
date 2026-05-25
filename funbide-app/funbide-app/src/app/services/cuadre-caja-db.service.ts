@@ -18,6 +18,11 @@ export interface CuadreCajaDb {
   updated_at?: string;
 }
 
+export interface CuadreCajaHistorico extends CuadreCajaDb {
+  total_ingresos: number;
+  estado_texto: string;
+}
+
 export interface CuadreCajaResumen {
   fecha: string;
   total_turnos: number;
@@ -164,5 +169,25 @@ export class CuadreCajaDbService {
   async jornadaCerradaHoy(fecha = new Date()): Promise<boolean> {
     const cuadre = await this.obtenerCuadrePorFecha(fecha);
     return !!cuadre?.jornada_cerrada;
+  }
+
+  async listarHistorial(limit = 30): Promise<CuadreCajaHistorico[]> {
+    const { data, error } = await this.client
+      .from('cuadres_caja')
+      .select('*')
+      .order('fecha', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return (data ?? []).map((item) => ({
+      ...item,
+      total_ingresos:
+        Number(item.total_efectivo ?? 0) +
+        Number(item.total_tarjeta ?? 0) +
+        Number(item.total_transferencia ?? 0) +
+        Number(item.total_senasa ?? 0),
+      estado_texto: item.jornada_cerrada ? 'Cerrada' : 'Abierta'
+    })) as CuadreCajaHistorico[];
   }
 }
