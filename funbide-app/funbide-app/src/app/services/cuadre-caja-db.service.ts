@@ -76,6 +76,34 @@ export class CuadreCajaDbService {
     return rows.reduce((acc, row) => acc + Number(row[campo] ?? 0), 0);
   }
 
+  private obtenerDetallesPago(row: Record<string, any>): Array<{ metodo?: string; monto?: number }> {
+    const detalle = row?.['detalle_pagos'];
+    if (Array.isArray(detalle)) return detalle as Array<{ metodo?: string; monto?: number }>;
+
+    if (typeof detalle === 'string') {
+      try {
+        const parsed = JSON.parse(detalle);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  }
+
+  private obtenerDetalleCobroNormalizado(row: Record<string, any>): Array<{ metodo?: string; monto?: number }> {
+    const detalles = this.obtenerDetallesPago(row);
+    if (detalles.length > 0) return detalles;
+
+    const metodo = String(row?.['metodo_pago'] ?? '').toLowerCase();
+    if (metodo === 'efectivo' || metodo === 'tarjeta' || metodo === 'transferencia') {
+      return [{ metodo, monto: Number(row?.['monto_servicio'] ?? 0) }];
+    }
+
+    return [];
+  }
+
   private normalizarSeguroNombre(valor: string | null | undefined): string {
     const texto = String(valor ?? '').trim().toUpperCase();
     if (!texto) return '';
@@ -118,7 +146,7 @@ export class CuadreCajaDbService {
         .lt('fecha_creado', fin),
       this.client
         .from('cobros')
-        .select('monto_servicio,metodo_pago,seguro_nombre,monto_aporte_cliente')
+        .select('monto_servicio,metodo_pago,seguro_nombre,monto_aporte_cliente,detalle_pagos')
         .gte('created_at', inicio)
         .lt('created_at', fin),
       this.client
@@ -144,9 +172,15 @@ export class CuadreCajaDbService {
     const pendientes = pendientesRes.data ?? [];
     const cuadre = cuadreRes.data ?? null;
 
-    const efectivo = cobros.filter(item => item.metodo_pago === 'efectivo');
-    const tarjeta = cobros.filter(item => item.metodo_pago === 'tarjeta');
-    const transferencia = cobros.filter(item => item.metodo_pago === 'transferencia');
+    const efectivo = cobros
+      .flatMap(item => this.obtenerDetalleCobroNormalizado(item))
+      .filter(pago => pago.metodo === 'efectivo');
+    const tarjeta = cobros
+      .flatMap(item => this.obtenerDetalleCobroNormalizado(item))
+      .filter(pago => pago.metodo === 'tarjeta');
+    const transferencia = cobros
+      .flatMap(item => this.obtenerDetalleCobroNormalizado(item))
+      .filter(pago => pago.metodo === 'transferencia');
     const senasaSubsidiado = cobros.filter(item => this.normalizarSeguroNombre(item.seguro_nombre) === 'SENASA SUBSIDIADO');
     const senasaContributivo = cobros.filter(item => this.normalizarSeguroNombre(item.seguro_nombre) === 'SENASA CONTRIBUTIVO');
     const senasa = cobros.filter(item => item.metodo_pago === 'senasa' || this.normalizarSeguroNombre(item.seguro_nombre).includes('SENASA'));
@@ -161,9 +195,9 @@ export class CuadreCajaDbService {
       fecha: fechaClave,
       total_turnos: turnos.length,
       total_cobros: cobros.length,
-      total_efectivo: this.sumarMonto(efectivo, 'monto_servicio'),
-      total_tarjeta: this.sumarMonto(tarjeta, 'monto_servicio'),
-      total_transferencia: this.sumarMonto(transferencia, 'monto_servicio'),
+      total_efectivo: this.sumarMonto(efectivo, 'monto'),
+      total_tarjeta: this.sumarMonto(tarjeta, 'monto'),
+      total_transferencia: this.sumarMonto(transferencia, 'monto'),
       total_senasa: this.sumarMonto(senasa, 'monto_servicio'),
       total_senasa_subsidiado: this.sumarMonto(senasaSubsidiado, 'monto_servicio'),
       total_senasa_contributivo: this.sumarMonto(senasaContributivo, 'monto_servicio'),
@@ -232,8 +266,7 @@ export class CuadreCajaDbService {
       total_ingresos:
         Number(item.total_efectivo ?? 0) +
         Number(item.total_tarjeta ?? 0) +
-        Number(item.total_transferencia ?? 0) +
-        Number(item.total_aporte_cliente ?? 0),
+        Number(item.total_transferencia ?? 0),
       estado_texto: item.jornada_cerrada ? 'Cerrada' : 'Abierta'
     })) as CuadreCajaHistorico[];
   }

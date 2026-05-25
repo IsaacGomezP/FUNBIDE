@@ -561,6 +561,141 @@
   margin-bottom: 24px;
 }
 
+.checkbox-row {
+  align-items: start;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.inline-summary {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #dbe4f0;
+}
+
+.inline-summary span {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.inline-summary strong {
+  font-size: 18px;
+  color: #111827;
+}
+
+.payment-split {
+  margin: 8px 0 24px;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  border: 1px solid #dbe4f0;
+}
+
+.split-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.split-head h3 {
+  margin: 6px 0 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.split-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.split-summary > div {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #dbe4f0;
+}
+
+.split-summary span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.split-summary strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.split-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mini-btn {
+  border: 1px solid #dbe4f0;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 800;
+  color: #1f2937;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.split-list {
+  display: grid;
+  gap: 10px;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1.2fr) 42px;
+  gap: 10px;
+  align-items: center;
+}
+
+.split-row select,
+.split-row input {
+  width: 100%;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  padding: 12px 12px;
+  background: #fff;
+}
+
+.remove-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #dc2626;
+  cursor: pointer;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -772,6 +907,17 @@
   
   .action-buttons {
     grid-template-columns: 1fr;
+  }
+
+  .split-head,
+  .split-summary,
+  .split-row {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .split-head {
+    justify-content: stretch;
   }
   
   .timeline {

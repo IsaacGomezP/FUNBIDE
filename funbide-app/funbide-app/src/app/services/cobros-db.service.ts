@@ -10,18 +10,25 @@ export interface CobroDb {
   servicio_nombre: string;
   servicio_id?: string | null;
   monto_servicio: number;
-  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer';
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer' | 'mixto';
   monto_recibido?: number | null;
   cambio?: number | null;
   referencia_pago?: string | null;
   monto_aporte_cliente?: number | null;
   seguro_nombre?: string | null;
   seguro_numero?: string | null;
+  detalle_pagos?: PagoDetalleDb[] | null;
   area_destino: string;
   estado: 'pendiente' | 'pagado' | 'rechazado';
   cajero: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface PagoDetalleDb {
+  metodo: 'efectivo' | 'tarjeta' | 'transferencia';
+  monto: number;
+  referencia?: string | null;
 }
 
 @Injectable({

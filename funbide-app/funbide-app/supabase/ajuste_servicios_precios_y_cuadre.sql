@@ -13,6 +13,8 @@ where precio_subsidiado is null or precio_contributivo is null or precio_renacer
 
 alter table if exists public.cobros
   add column if not exists monto_aporte_cliente numeric(12,2) null default 0;
+alter table if exists public.cobros
+  add column if not exists detalle_pagos jsonb not null default '[]'::jsonb;
 
 alter table if exists public.cuentas_por_cobrar
   add column if not exists monto_aporte_cliente numeric(12,2) not null default 0;

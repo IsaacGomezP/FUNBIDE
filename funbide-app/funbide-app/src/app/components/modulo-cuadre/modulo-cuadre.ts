@@ -55,7 +55,7 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
 
   get totalIngresos() {
     if (!this.resumen) return 0;
-    return this.resumen.total_efectivo + this.resumen.total_tarjeta + this.resumen.total_transferencia + this.resumen.total_aporte_cliente;
+    return this.resumen.total_efectivo + this.resumen.total_tarjeta + this.resumen.total_transferencia;
   }
 
   async cargarResumen() {
@@ -138,7 +138,7 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
         'Aporte cliente': resumenDia.total_aporte_cliente,
         'Pendiente SENASA': resumenDia.total_pendiente_senasa,
         'Pendiente Renacer': resumenDia.total_pendiente_renacer,
-        'Total ingresos': resumenDia.total_efectivo + resumenDia.total_tarjeta + resumenDia.total_transferencia + resumenDia.total_aporte_cliente,
+        'Total ingresos': resumenDia.total_efectivo + resumenDia.total_tarjeta + resumenDia.total_transferencia,
         'Turnos en espera': resumenDia.turnos_espera,
         'Turnos llamando': resumenDia.turnos_llamando,
         'Turnos atendiendo': resumenDia.turnos_atendiendo,

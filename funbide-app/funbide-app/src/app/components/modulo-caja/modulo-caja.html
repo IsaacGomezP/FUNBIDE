@@ -225,15 +225,9 @@
 
           <div class="extra-fields">
             @if (ticketCobro.metodoPago === 'efectivo') {
-              <div class="row">
-                <label>Monto Recibido</label>
-                <input type="number" [(ngModel)]="ticketCobro.montoRecibido" (input)="calcularCambio()" />
-                <label>Cambio</label>
-                <input type="text" [value]="ticketCobro.cambio | number:'1.2-2'" readonly />
-              </div>
+              <div class="info-card">Use la sección de pago combinado para registrar efectivo, tarjeta o transferencia en una o varias partes.</div>
             } @else if (ticketCobro.metodoPago === 'transferencia') {
-              <label>Referencia de Transferencia</label>
-              <input type="text" [(ngModel)]="ticketCobro.referenciaPago" placeholder="Número o referencia bancaria" />
+              <div class="info-card">Use la sección de pago combinado para registrar una referencia y completar con otro método si hace falta.</div>
             } @else if (ticketCobro.metodoPago === 'senasa') {
               @if (!servicioPermiteSenasaSeleccionado) {
                 <div class="info-card">Este servicio no aplica cobertura SENASA. Cambie a otro método de pago.</div>
@@ -253,16 +247,32 @@
                 <label>Cobertura seleccionada</label>
                 <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
               </div>
-              <div class="row">
-                <label>Aporte del paciente</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  [(ngModel)]="ticketCobro.aporteCliente"
-                  placeholder="Monto que paga el cliente" />
-                <label>Saldo pendiente</label>
-                <input type="text" [value]="'RD$ ' + (saldoSeguroPendiente | number:'1.2-2')" readonly />
+              <div class="row checkbox-row">
+                <label class="inline-check">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="ticketCobro.requiereAportePaciente"
+                    (change)="onCambioAportePaciente()" />
+                  El paciente realizará aporte
+                </label>
+                @if (ticketCobro.requiereAportePaciente) {
+                  <div class="inline-summary">
+                    <span>Aporte del paciente</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [(ngModel)]="ticketCobro.aporteCliente"
+                      (input)="onCambioAportePaciente()"
+                      placeholder="Monto que pagará el paciente" />
+                  </div>
+                  <div class="inline-summary">
+                    <span>Saldo pendiente</span>
+                    <strong>RD$ {{ (saldoSeguroPendiente | number:'1.2-2') }}</strong>
+                  </div>
+                } @else {
+                  <div class="info-card">El seguro cubrirá el total. No se registrará aporte del paciente.</div>
+                }
               </div>
               }
             } @else if (ticketCobro.metodoPago === 'renacer') {
@@ -281,21 +291,87 @@
                   <label>Cobertura seleccionada</label>
                   <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
                 </div>
-                <div class="row">
-                  <label>Aporte del paciente</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    [(ngModel)]="ticketCobro.aporteCliente"
-                    placeholder="Monto que paga el cliente" />
-                  <label>Saldo pendiente</label>
-                  <input type="text" [value]="'RD$ ' + (saldoSeguroPendiente | number:'1.2-2')" readonly />
+                <div class="row checkbox-row">
+                  <label class="inline-check">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="ticketCobro.requiereAportePaciente"
+                      (change)="onCambioAportePaciente()" />
+                    El paciente realizará aporte
+                  </label>
+                @if (ticketCobro.requiereAportePaciente) {
+                    <div class="inline-summary">
+                      <span>Aporte del paciente</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [(ngModel)]="ticketCobro.aporteCliente"
+                        (input)="onCambioAportePaciente()"
+                        placeholder="Monto que pagará el paciente" />
+                    </div>
+                    <div class="inline-summary">
+                      <span>Saldo pendiente</span>
+                      <strong>RD$ {{ (saldoSeguroPendiente | number:'1.2-2') }}</strong>
+                    </div>
+                  } @else {
+                    <div class="info-card">El seguro cubrirá el total. No se registrará aporte del paciente.</div>
+                  }
                 </div>
               }
             } @else {
               <div class="info-card">Confirma el pago en el datáfono y presiona "Cobrar".</div>
             }
+          </div>
+
+          <div class="payment-split" *ngIf="montoObjetivoPagoCliente > 0">
+            <div class="split-head">
+              <div>
+                <span class="section-label">Pago combinado</span>
+                <h3>Métodos de pago del cliente</h3>
+              </div>
+              <span class="result-chip">Debe cubrir RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="split-summary">
+              <div>
+                <span>Asignado</span>
+                <strong>RD$ {{ totalPagosCliente | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span>Saldo</span>
+                <strong>RD$ {{ saldoPagosCliente | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+
+            <div class="split-actions">
+              <button type="button" class="mini-btn" (click)="agregarPago('efectivo')"><i class="fas fa-money-bill"></i> Efectivo</button>
+              <button type="button" class="mini-btn" (click)="agregarPago('tarjeta')"><i class="fas fa-credit-card"></i> Tarjeta</button>
+              <button type="button" class="mini-btn" (click)="agregarPago('transferencia')"><i class="fas fa-university"></i> Transferencia</button>
+            </div>
+
+            <div class="split-list">
+              @for (pago of ticketCobro.pagos; track pago.id) {
+                <div class="split-row">
+                  <select [(ngModel)]="pago.metodo">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                  </select>
+                  <input type="number" min="0" step="0.01" [(ngModel)]="pago.monto" placeholder="Monto" />
+                  @if (pago.metodo === 'transferencia') {
+                    <input type="text" [(ngModel)]="pago.referencia" placeholder="Referencia" />
+                  } @else {
+                    <input type="text" [(ngModel)]="pago.referencia" placeholder="Referencia / nota" />
+                  }
+                  <button type="button" class="remove-btn" (click)="quitarPago(pago.id)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              } @empty {
+                <div class="empty-state">Agregue al menos un método de pago si este cobro requiere monto del cliente.</div>
+              }
+            </div>
           </div>
 
           <div class="action-buttons">
