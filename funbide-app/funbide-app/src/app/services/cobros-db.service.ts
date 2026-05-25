@@ -14,6 +14,7 @@ export interface CobroDb {
   monto_recibido?: number | null;
   cambio?: number | null;
   referencia_pago?: string | null;
+  monto_aporte_cliente?: number | null;
   seguro_nombre?: string | null;
   seguro_numero?: string | null;
   area_destino: string;

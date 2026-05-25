@@ -11,6 +11,12 @@ set
   precio_renacer = coalesce(precio_renacer, precio)
 where precio_subsidiado is null or precio_contributivo is null or precio_renacer is null;
 
+alter table if exists public.cobros
+  add column if not exists monto_aporte_cliente numeric(12,2) null default 0;
+
+alter table if exists public.cuentas_por_cobrar
+  add column if not exists monto_aporte_cliente numeric(12,2) not null default 0;
+
 alter table if exists public.servicios_precios enable row level security;
 
 grant select, insert, update, delete on public.servicios_precios to anon;
@@ -50,6 +56,7 @@ alter table if exists public.cuadres_caja
   add column if not exists total_senasa_subsidiado numeric(12,2) not null default 0,
   add column if not exists total_senasa_contributivo numeric(12,2) not null default 0,
   add column if not exists total_renacer numeric(12,2) not null default 0,
+  add column if not exists total_aporte_cliente numeric(12,2) not null default 0,
   add column if not exists total_pendiente_renacer numeric(12,2) not null default 0;
 
 create table if not exists public.cuadres_caja (
@@ -64,6 +71,7 @@ create table if not exists public.cuadres_caja (
   total_senasa_subsidiado numeric(12,2) not null default 0,
   total_senasa_contributivo numeric(12,2) not null default 0,
   total_renacer numeric(12,2) not null default 0,
+  total_aporte_cliente numeric(12,2) not null default 0,
   total_pendiente_senasa numeric(12,2) not null default 0,
   total_pendiente_renacer numeric(12,2) not null default 0,
   jornada_cerrada boolean not null default false,

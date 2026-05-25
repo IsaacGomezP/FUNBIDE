@@ -13,6 +13,7 @@ export interface CuadreCajaDb {
   total_senasa_subsidiado: number;
   total_senasa_contributivo: number;
   total_renacer: number;
+  total_aporte_cliente: number;
   total_pendiente_senasa: number;
   total_pendiente_renacer: number;
   jornada_cerrada: boolean;
@@ -38,6 +39,7 @@ export interface CuadreCajaResumen {
   total_senasa_subsidiado: number;
   total_senasa_contributivo: number;
   total_renacer: number;
+  total_aporte_cliente: number;
   total_pendiente_senasa: number;
   total_pendiente_renacer: number;
   jornada_cerrada: boolean;
@@ -116,7 +118,7 @@ export class CuadreCajaDbService {
         .lt('fecha_creado', fin),
       this.client
         .from('cobros')
-        .select('monto_servicio,metodo_pago,seguro_nombre')
+        .select('monto_servicio,metodo_pago,seguro_nombre,monto_aporte_cliente')
         .gte('created_at', inicio)
         .lt('created_at', fin),
       this.client
@@ -149,6 +151,9 @@ export class CuadreCajaDbService {
     const senasaContributivo = cobros.filter(item => this.normalizarSeguroNombre(item.seguro_nombre) === 'SENASA CONTRIBUTIVO');
     const senasa = cobros.filter(item => item.metodo_pago === 'senasa' || this.normalizarSeguroNombre(item.seguro_nombre).includes('SENASA'));
     const renacer = cobros.filter(item => this.esSeguroRenacer(item.seguro_nombre) || item.metodo_pago === 'renacer');
+    const aporteCliente = cobros
+      .filter(item => item.metodo_pago === 'senasa' || item.metodo_pago === 'renacer')
+      .reduce((acc, item) => acc + Number(item.monto_aporte_cliente ?? 0), 0);
     const pendientesSenasa = pendientes.filter(item => this.esSeguroSenasa(item.aseguradora));
     const pendientesRenacer = pendientes.filter(item => this.esSeguroRenacer(item.aseguradora));
 
@@ -163,6 +168,7 @@ export class CuadreCajaDbService {
       total_senasa_subsidiado: this.sumarMonto(senasaSubsidiado, 'monto_servicio'),
       total_senasa_contributivo: this.sumarMonto(senasaContributivo, 'monto_servicio'),
       total_renacer: this.sumarMonto(renacer, 'monto_servicio'),
+      total_aporte_cliente: aporteCliente,
       total_pendiente_senasa: this.sumarMonto(pendientesSenasa, 'monto_pendiente'),
       total_pendiente_renacer: this.sumarMonto(pendientesRenacer, 'monto_pendiente'),
       jornada_cerrada: !!cuadre?.jornada_cerrada,
@@ -189,6 +195,7 @@ export class CuadreCajaDbService {
       total_senasa_subsidiado: resumen.total_senasa_subsidiado,
       total_senasa_contributivo: resumen.total_senasa_contributivo,
       total_renacer: resumen.total_renacer,
+      total_aporte_cliente: resumen.total_aporte_cliente,
       total_pendiente_senasa: resumen.total_pendiente_senasa,
       total_pendiente_renacer: resumen.total_pendiente_renacer,
       jornada_cerrada: true,
@@ -226,8 +233,7 @@ export class CuadreCajaDbService {
         Number(item.total_efectivo ?? 0) +
         Number(item.total_tarjeta ?? 0) +
         Number(item.total_transferencia ?? 0) +
-        Number(item.total_senasa ?? 0) +
-        Number(item.total_renacer ?? 0),
+        Number(item.total_aporte_cliente ?? 0),
       estado_texto: item.jornada_cerrada ? 'Cerrada' : 'Abierta'
     })) as CuadreCajaHistorico[];
   }

@@ -253,6 +253,17 @@
                 <label>Cobertura seleccionada</label>
                 <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
               </div>
+              <div class="row">
+                <label>Aporte del paciente</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="ticketCobro.aporteCliente"
+                  placeholder="Monto que paga el cliente" />
+                <label>Saldo pendiente</label>
+                <input type="text" [value]="'RD$ ' + (saldoSeguroPendiente | number:'1.2-2')" readonly />
+              </div>
               }
             } @else if (ticketCobro.metodoPago === 'renacer') {
               @if (!servicioPermiteRenacerSeleccionado) {
@@ -269,6 +280,17 @@
                   <input type="text" value="ARS Renacer" readonly />
                   <label>Cobertura seleccionada</label>
                   <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
+                </div>
+                <div class="row">
+                  <label>Aporte del paciente</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [(ngModel)]="ticketCobro.aporteCliente"
+                    placeholder="Monto que paga el cliente" />
+                  <label>Saldo pendiente</label>
+                  <input type="text" [value]="'RD$ ' + (saldoSeguroPendiente | number:'1.2-2')" readonly />
                 </div>
               }
             } @else {
