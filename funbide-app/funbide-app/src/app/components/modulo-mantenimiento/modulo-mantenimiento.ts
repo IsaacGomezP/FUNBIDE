@@ -13,6 +13,11 @@ type UsuarioForm = {
   activo: boolean;
 };
 
+interface RolPreset {
+  nombre: string;
+  descripcion: string;
+}
+
 @Component({
   selector: 'app-modulo-mantenimiento',
   standalone: true,
@@ -48,6 +53,19 @@ export class ModuloMantenimientoComponent implements OnInit {
     'Reportes',
     'Cuadre',
     'Supervisión'
+  ];
+
+  rolesPreset: RolPreset[] = [
+    { nombre: 'Administración', descripcion: 'Acceso total a todos los módulos y usuarios.' },
+    { nombre: 'Administrador', descripcion: 'Acceso completo al dashboard y módulos internos.' },
+    { nombre: 'Cajero', descripcion: 'Caja, cobros, tickets y reportes operativos.' },
+    { nombre: 'Kiosko', descripcion: 'Solo autoservicio para generar turnos.' },
+    { nombre: 'Gestor precios', descripcion: 'Catálogo de servicios, precios y seguros.' },
+    { nombre: 'Farmacia', descripcion: 'Inventario y dispensación de medicamentos.' },
+    { nombre: 'Medico', descripcion: 'Consulta clínica y expedientes médicos.' },
+    { nombre: 'Laboratorio', descripcion: 'Recepción y seguimiento de análisis.' },
+    { nombre: 'Cuadre', descripcion: 'Cierre de jornada y cuadre diario.' },
+    { nombre: 'Supervisión', descripcion: 'Monitoreo operativo y control de turnos.' }
   ];
 
   constructor(private supabase: SupabaseService, private cdr: ChangeDetectorRef) {}
@@ -115,6 +133,14 @@ export class ModuloMantenimientoComponent implements OnInit {
   nuevoUsuario() {
     this.usuarioForm = this.formularioInicial();
     this.modoEdicion = false;
+  }
+
+  aplicarRol(rol: string) {
+    this.usuarioForm.rol = rol;
+  }
+
+  get rolSeleccionadoMeta(): RolPreset | undefined {
+    return this.rolesPreset.find((rol) => rol.nombre === this.usuarioForm.rol);
   }
 
   async guardarUsuario() {

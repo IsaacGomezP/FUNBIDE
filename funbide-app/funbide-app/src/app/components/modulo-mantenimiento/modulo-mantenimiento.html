@@ -40,37 +40,68 @@
   <section class="workspace-grid">
     <article class="panel">
       <div class="panel-head">
-        <h2>{{ modoEdicion ? 'Editar usuario' : 'Crear usuario' }}</h2>
+        <div>
+          <h2>{{ modoEdicion ? 'Editar usuario' : 'Crear usuario' }}</h2>
+          <span>Complete los datos, asigne el rol y active el acceso.</span>
+        </div>
         <span>Permisos y acceso</span>
       </div>
 
-      <div class="field">
-        <label>Nombre completo</label>
-        <input type="text" [(ngModel)]="usuarioForm.nombre_completo" placeholder="Nombre del colaborador">
+      <div class="form-grid">
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" [(ngModel)]="usuarioForm.nombre_completo" placeholder="Nombre del colaborador">
+        </div>
+
+        <div class="field">
+          <label>Usuario</label>
+          <input type="text" [(ngModel)]="usuarioForm.username" placeholder="nombre.usuario">
+        </div>
+
+        <div class="field">
+          <label>Correo</label>
+          <input type="email" [(ngModel)]="usuarioForm.email" placeholder="correo@funbide.com">
+        </div>
+
+        <div class="field">
+          <label>Contraseña temporal</label>
+          <input type="password" [(ngModel)]="usuarioForm.password" placeholder="Dejar vacío al editar">
+        </div>
       </div>
 
-      <div class="field">
-        <label>Usuario</label>
-        <input type="text" [(ngModel)]="usuarioForm.username" placeholder="nombre.usuario">
-      </div>
+      <div class="role-section">
+        <div class="section-header">
+          <div>
+            <h3>Rol asignado</h3>
+            <p>Seleccione el perfil que definirá los módulos y permisos.</p>
+          </div>
+          <span class="role-pill">{{ usuarioForm.rol || 'Sin rol' }}</span>
+        </div>
 
-      <div class="field">
-        <label>Correo</label>
-        <input type="email" [(ngModel)]="usuarioForm.email" placeholder="correo@funbide.com">
-      </div>
-
-      <div class="field">
-        <label>Rol</label>
-        <select [(ngModel)]="usuarioForm.rol">
-          @for (rol of rolesDisponibles; track rol) {
-            <option [value]="rol">{{ rol }}</option>
+        <div class="role-presets">
+          @for (rol of rolesPreset; track rol.nombre) {
+            <button type="button" class="role-chip" [class.active]="usuarioForm.rol === rol.nombre" (click)="aplicarRol(rol.nombre)">
+              <strong>{{ rol.nombre }}</strong>
+              <small>{{ rol.descripcion }}</small>
+            </button>
           }
-        </select>
-      </div>
+        </div>
 
-      <div class="field">
-        <label>Contraseña temporal</label>
-        <input type="password" [(ngModel)]="usuarioForm.password" placeholder="Dejar vacío al editar">
+        <div class="field">
+          <label>Rol personalizado</label>
+          <select [(ngModel)]="usuarioForm.rol">
+            @for (rol of rolesDisponibles; track rol) {
+              <option [value]="rol">{{ rol }}</option>
+            }
+          </select>
+        </div>
+
+        @if (rolSeleccionadoMeta) {
+          <div class="role-help">
+            <strong>{{ rolSeleccionadoMeta.nombre }}</strong>
+            <span>{{ rolSeleccionadoMeta.descripcion }}</span>
+          </div>
+        }
       </div>
 
       <label class="switch">
@@ -92,7 +123,10 @@
 
     <article class="panel">
       <div class="panel-head">
-        <h2>Usuarios registrados</h2>
+        <div>
+          <h2>Usuarios registrados</h2>
+          <span>Lista activa con búsqueda y acciones rápidas.</span>
+        </div>
         <span>{{ usuariosFiltrados.length }} encontrados</span>
       </div>
 
