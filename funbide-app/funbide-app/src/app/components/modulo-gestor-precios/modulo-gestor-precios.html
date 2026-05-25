@@ -3,7 +3,7 @@
     <div>
       <span class="eyebrow">Catálogo clínico</span>
       <h1>Gestor de precios</h1>
-      <p>Controla servicios, precios base, cobertura de seguro y carga masiva desde Excel.</p>
+      <p>Controla servicios, precios base, cobertura SENASA subsidiado/contributivo y ARS Renacer, con carga masiva desde Excel.</p>
     </div>
 
     <div class="header-actions">
@@ -33,7 +33,7 @@
       <strong>{{ resumen.activos }}</strong>
     </div>
     <div class="info-card">
-      <span>Con seguro</span>
+      <span>Con cobertura</span>
       <strong>{{ resumen.conSeguro }}</strong>
     </div>
     <div class="info-card">
@@ -82,11 +82,11 @@
           </select>
         </div>
         <div class="field" [class.disabled]="!formulario.aplica_seguro">
-          <label>Precio subsidiado</label>
+          <label>Precio SENASA subsidiado</label>
           <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_subsidiado" [disabled]="!formulario.aplica_seguro">
         </div>
         <div class="field" [class.disabled]="!formulario.aplica_seguro">
-          <label>Precio contributivo</label>
+          <label>Precio SENASA contributivo</label>
           <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_contributivo" [disabled]="!formulario.aplica_seguro">
         </div>
         <div class="field" [class.disabled]="!formulario.aplica_seguro">

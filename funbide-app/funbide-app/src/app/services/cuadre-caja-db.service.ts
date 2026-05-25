@@ -10,7 +10,11 @@ export interface CuadreCajaDb {
   total_tarjeta: number;
   total_transferencia: number;
   total_senasa: number;
+  total_senasa_subsidiado: number;
+  total_senasa_contributivo: number;
+  total_renacer: number;
   total_pendiente_senasa: number;
+  total_pendiente_renacer: number;
   jornada_cerrada: boolean;
   hora_cierre?: string | null;
   observaciones?: string | null;
@@ -31,7 +35,11 @@ export interface CuadreCajaResumen {
   total_tarjeta: number;
   total_transferencia: number;
   total_senasa: number;
+  total_senasa_subsidiado: number;
+  total_senasa_contributivo: number;
+  total_renacer: number;
   total_pendiente_senasa: number;
+  total_pendiente_renacer: number;
   jornada_cerrada: boolean;
   hora_cierre: string | null;
   observaciones: string | null;
@@ -66,6 +74,25 @@ export class CuadreCajaDbService {
     return rows.reduce((acc, row) => acc + Number(row[campo] ?? 0), 0);
   }
 
+  private normalizarSeguroNombre(valor: string | null | undefined): string {
+    const texto = String(valor ?? '').trim().toUpperCase();
+    if (!texto) return '';
+
+    if (texto.includes('RENACER')) return 'ARS RENACER';
+    if (texto.includes('SENASA') && texto.includes('CONTRIBUTIVO')) return 'SENASA CONTRIBUTIVO';
+    if (texto.includes('SENASA') && texto.includes('SUBSIDIADO')) return 'SENASA SUBSIDIADO';
+    if (texto === 'SENASA') return 'SENASA';
+    return texto;
+  }
+
+  private esSeguroSenasa(valor: string | null | undefined): boolean {
+    return this.normalizarSeguroNombre(valor).includes('SENASA');
+  }
+
+  private esSeguroRenacer(valor: string | null | undefined): boolean {
+    return this.normalizarSeguroNombre(valor) === 'ARS RENACER';
+  }
+
   async obtenerCuadrePorFecha(fecha = new Date()): Promise<CuadreCajaDb | null> {
     const { fechaClave } = this.obtenerRangoDia(fecha);
     const { data, error } = await this.client
@@ -89,12 +116,12 @@ export class CuadreCajaDbService {
         .lt('fecha_creado', fin),
       this.client
         .from('cobros')
-        .select('monto_servicio,metodo_pago')
+        .select('monto_servicio,metodo_pago,seguro_nombre')
         .gte('created_at', inicio)
         .lt('created_at', fin),
       this.client
         .from('cuentas_por_cobrar')
-        .select('monto_pendiente,estado')
+        .select('monto_pendiente,estado,aseguradora')
         .gte('created_at', inicio)
         .lt('created_at', fin)
         .eq('estado', 'pendiente'),
@@ -118,7 +145,12 @@ export class CuadreCajaDbService {
     const efectivo = cobros.filter(item => item.metodo_pago === 'efectivo');
     const tarjeta = cobros.filter(item => item.metodo_pago === 'tarjeta');
     const transferencia = cobros.filter(item => item.metodo_pago === 'transferencia');
-    const senasa = cobros.filter(item => item.metodo_pago === 'senasa');
+    const senasaSubsidiado = cobros.filter(item => this.normalizarSeguroNombre(item.seguro_nombre) === 'SENASA SUBSIDIADO');
+    const senasaContributivo = cobros.filter(item => this.normalizarSeguroNombre(item.seguro_nombre) === 'SENASA CONTRIBUTIVO');
+    const senasa = cobros.filter(item => item.metodo_pago === 'senasa' || this.normalizarSeguroNombre(item.seguro_nombre).includes('SENASA'));
+    const renacer = cobros.filter(item => this.esSeguroRenacer(item.seguro_nombre) || item.metodo_pago === 'renacer');
+    const pendientesSenasa = pendientes.filter(item => this.esSeguroSenasa(item.aseguradora));
+    const pendientesRenacer = pendientes.filter(item => this.esSeguroRenacer(item.aseguradora));
 
     return {
       fecha: fechaClave,
@@ -128,7 +160,11 @@ export class CuadreCajaDbService {
       total_tarjeta: this.sumarMonto(tarjeta, 'monto_servicio'),
       total_transferencia: this.sumarMonto(transferencia, 'monto_servicio'),
       total_senasa: this.sumarMonto(senasa, 'monto_servicio'),
-      total_pendiente_senasa: this.sumarMonto(pendientes, 'monto_pendiente'),
+      total_senasa_subsidiado: this.sumarMonto(senasaSubsidiado, 'monto_servicio'),
+      total_senasa_contributivo: this.sumarMonto(senasaContributivo, 'monto_servicio'),
+      total_renacer: this.sumarMonto(renacer, 'monto_servicio'),
+      total_pendiente_senasa: this.sumarMonto(pendientesSenasa, 'monto_pendiente'),
+      total_pendiente_renacer: this.sumarMonto(pendientesRenacer, 'monto_pendiente'),
       jornada_cerrada: !!cuadre?.jornada_cerrada,
       hora_cierre: cuadre?.hora_cierre ?? null,
       observaciones: cuadre?.observaciones ?? null,
@@ -150,7 +186,11 @@ export class CuadreCajaDbService {
       total_tarjeta: resumen.total_tarjeta,
       total_transferencia: resumen.total_transferencia,
       total_senasa: resumen.total_senasa,
+      total_senasa_subsidiado: resumen.total_senasa_subsidiado,
+      total_senasa_contributivo: resumen.total_senasa_contributivo,
+      total_renacer: resumen.total_renacer,
       total_pendiente_senasa: resumen.total_pendiente_senasa,
+      total_pendiente_renacer: resumen.total_pendiente_renacer,
       jornada_cerrada: true,
       hora_cierre: horaCierre,
       observaciones: observaciones.trim() || 'Cierre automático de jornada'
@@ -186,7 +226,8 @@ export class CuadreCajaDbService {
         Number(item.total_efectivo ?? 0) +
         Number(item.total_tarjeta ?? 0) +
         Number(item.total_transferencia ?? 0) +
-        Number(item.total_senasa ?? 0),
+        Number(item.total_senasa ?? 0) +
+        Number(item.total_renacer ?? 0),
       estado_texto: item.jornada_cerrada ? 'Cerrada' : 'Abierta'
     })) as CuadreCajaHistorico[];
   }

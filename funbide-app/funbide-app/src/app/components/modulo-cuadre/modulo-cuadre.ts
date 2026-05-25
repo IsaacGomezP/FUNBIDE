@@ -55,7 +55,7 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
 
   get totalIngresos() {
     if (!this.resumen) return 0;
-    return this.resumen.total_efectivo + this.resumen.total_tarjeta + this.resumen.total_transferencia + this.resumen.total_senasa;
+    return this.resumen.total_efectivo + this.resumen.total_tarjeta + this.resumen.total_transferencia + this.resumen.total_senasa + this.resumen.total_renacer;
   }
 
   async cargarResumen() {
@@ -132,9 +132,12 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
         Efectivo: resumenDia.total_efectivo,
         Tarjeta: resumenDia.total_tarjeta,
         Transferencia: resumenDia.total_transferencia,
-        SENASA: resumenDia.total_senasa,
+        'SENASA subsidiado': resumenDia.total_senasa_subsidiado,
+        'SENASA contributivo': resumenDia.total_senasa_contributivo,
+        'ARS Renacer': resumenDia.total_renacer,
         'Pendiente SENASA': resumenDia.total_pendiente_senasa,
-        'Total ingresos': resumenDia.total_efectivo + resumenDia.total_tarjeta + resumenDia.total_transferencia + resumenDia.total_senasa,
+        'Pendiente Renacer': resumenDia.total_pendiente_renacer,
+        'Total ingresos': resumenDia.total_efectivo + resumenDia.total_tarjeta + resumenDia.total_transferencia + resumenDia.total_senasa + resumenDia.total_renacer,
         'Turnos en espera': resumenDia.turnos_espera,
         'Turnos llamando': resumenDia.turnos_llamando,
         'Turnos atendiendo': resumenDia.turnos_atendiendo,
@@ -151,8 +154,11 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
         Efectivo: item.total_efectivo,
         Tarjeta: item.total_tarjeta,
         Transferencia: item.total_transferencia,
-        SENASA: item.total_senasa,
+        'SENASA subsidiado': item.total_senasa_subsidiado,
+        'SENASA contributivo': item.total_senasa_contributivo,
+        'ARS Renacer': item.total_renacer,
         'Pendiente SENASA': item.total_pendiente_senasa,
+        'Pendiente Renacer': item.total_pendiente_renacer,
         'Total ingresos': item.total_ingresos,
         'Hora cierre': item.hora_cierre ? new Date(item.hora_cierre).toLocaleString('es-DO') : '',
         Observaciones: item.observaciones ?? ''

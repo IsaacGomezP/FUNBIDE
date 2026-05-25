@@ -71,8 +71,24 @@
             <strong>RD$ {{ totalIngresos | number:'1.2-2' }}</strong>
           </div>
           <div class="kpi-card">
+            <span>SENASA subsidiado</span>
+            <strong>RD$ {{ resumen.total_senasa_subsidiado | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>SENASA contributivo</span>
+            <strong>RD$ {{ resumen.total_senasa_contributivo | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>ARS Renacer</span>
+            <strong>RD$ {{ resumen.total_renacer | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
             <span>Pendiente SENASA</span>
             <strong>RD$ {{ resumen.total_pendiente_senasa | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>Pendiente Renacer</span>
+            <strong>RD$ {{ resumen.total_pendiente_renacer | number:'1.2-2' }}</strong>
           </div>
         </div>
 
@@ -83,7 +99,9 @@
               <div class="mini-row"><strong>Efectivo</strong><span>RD$ {{ resumen.total_efectivo | number:'1.2-2' }}</span></div>
               <div class="mini-row"><strong>Tarjeta</strong><span>RD$ {{ resumen.total_tarjeta | number:'1.2-2' }}</span></div>
               <div class="mini-row"><strong>Transferencia</strong><span>RD$ {{ resumen.total_transferencia | number:'1.2-2' }}</span></div>
-              <div class="mini-row"><strong>SENASA</strong><span>RD$ {{ resumen.total_senasa | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>SENASA subsidiado</strong><span>RD$ {{ resumen.total_senasa_subsidiado | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>SENASA contributivo</strong><span>RD$ {{ resumen.total_senasa_contributivo | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>ARS Renacer</strong><span>RD$ {{ resumen.total_renacer | number:'1.2-2' }}</span></div>
             </div>
           </div>
 

@@ -10,7 +10,7 @@ export interface CobroDb {
   servicio_nombre: string;
   servicio_id?: string | null;
   monto_servicio: number;
-  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa';
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer';
   monto_recibido?: number | null;
   cambio?: number | null;
   referencia_pago?: string | null;

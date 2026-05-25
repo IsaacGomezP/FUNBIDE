@@ -42,6 +42,11 @@
       <strong class="stat-number">RD$ {{ totalPendienteSenasaHoy | number:'1.2-2' }}</strong>
       <small>Monto acumulado por cobrar</small>
     </div>
+    <div class="stat-card warning-alt">
+      <span class="stat-label">Cuentas por cobrar RENACER</span>
+      <strong class="stat-number">RD$ {{ totalPendienteRenacerHoy | number:'1.2-2' }}</strong>
+      <small>Monto acumulado por cobrar</small>
+    </div>
   </div>
 
   <!-- CONTENEDOR PRINCIPAL DE TRABAJO (OCUPA TODO EL ESPACIO) -->
@@ -211,10 +216,11 @@
           </div>
 
           <div class="payment-methods">
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'; onServicioCobroChange()"><i class="fas fa-money-bill"></i> Efectivo</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'; onServicioCobroChange()"><i class="fas fa-credit-card"></i> Tarjeta</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'; onServicioCobroChange()"><i class="fas fa-university"></i> Transferencia</button>
-            <button class="method-btn" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'; onServicioCobroChange()" [disabled]="!servicioPermiteSeguroSeleccionado"><i class="fas fa-shield-alt"></i> SENASA</button>
+            <button class="method-btn cash" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'; onServicioCobroChange()"><i class="fas fa-money-bill"></i> Efectivo</button>
+            <button class="method-btn card" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'; onServicioCobroChange()"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            <button class="method-btn transfer" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'; onServicioCobroChange()"><i class="fas fa-university"></i> Transferencia</button>
+            <button class="method-btn senasa" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'; onServicioCobroChange()" [disabled]="!servicioPermiteSenasaSeleccionado"><i class="fas fa-shield-alt"></i> SENASA</button>
+            <button class="method-btn renacer" [class.active]="ticketCobro.metodoPago === 'renacer'" (click)="ticketCobro.metodoPago = 'renacer'; onServicioCobroChange()" [disabled]="!servicioPermiteRenacerSeleccionado"><i class="fas fa-umbrella"></i> RENACER</button>
           </div>
 
           <div class="extra-fields">
@@ -229,25 +235,41 @@
               <label>Referencia de Transferencia</label>
               <input type="text" [(ngModel)]="ticketCobro.referenciaPago" placeholder="Número o referencia bancaria" />
             } @else if (ticketCobro.metodoPago === 'senasa') {
-              @if (!servicioPermiteSeguroSeleccionado) {
-                <div class="info-card">Este servicio no aplica seguro. Cambie a otro método de pago.</div>
+              @if (!servicioPermiteSenasaSeleccionado) {
+                <div class="info-card">Este servicio no aplica cobertura SENASA. Cambie a otro método de pago.</div>
               } @else {
               <div class="row">
                 <label>Aseguradora</label>
-                <input type="text" [(ngModel)]="ticketCobro.seguroNombre" placeholder="SENASA / ARS Renacer" />
+                <input type="text" [value]="nombreAseguradoraSeleccionada" readonly />
                 <label>Número de Afiliación</label>
                 <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
               </div>
               <div class="row">
                 <label>Tipo de cobertura</label>
                 <select [(ngModel)]="ticketCobro.planSeguro" (change)="onServicioCobroChange()">
-                  <option value="subsidiado">Subsidiado</option>
-                  <option value="contributivo">Contributivo</option>
-                  <option value="renacer">ARS Renacer</option>
+                  <option value="subsidiado">SENASA Subsidiado</option>
+                  <option value="contributivo">SENASA Contributivo</option>
                 </select>
                 <label>Cobertura seleccionada</label>
                 <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
               </div>
+              }
+            } @else if (ticketCobro.metodoPago === 'renacer') {
+              @if (!servicioPermiteRenacerSeleccionado) {
+                <div class="info-card">Este servicio no aplica cobertura ARS Renacer. Cambie a otro método de pago.</div>
+              } @else {
+                <div class="row">
+                  <label>Aseguradora</label>
+                  <input type="text" [value]="nombreAseguradoraSeleccionada" readonly />
+                  <label>Número de Afiliación</label>
+                  <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
+                </div>
+                <div class="row">
+                  <label>Tipo de cobertura</label>
+                  <input type="text" value="ARS Renacer" readonly />
+                  <label>Cobertura seleccionada</label>
+                  <input type="text" [value]="'RD$ ' + (precioSeguroDisponible | number:'1.2-2')" readonly />
+                </div>
               }
             } @else {
               <div class="info-card">Confirma el pago en el datáfono y presiona "Cobrar".</div>

@@ -10,7 +10,7 @@ import { TurnoDb, TurnosDbService } from '../../services/turnos-db.service';
 import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 type Paso = 1 | 2 | 3;
-type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa';
+type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer';
 type PlanSeguro = 'subsidiado' | 'contributivo' | 'renacer' | '';
 
 interface TicketPendiente extends TurnoDb {
@@ -95,9 +95,9 @@ export class ModuloCajaComponent implements OnInit {
   totalPendientes = 0;
   totalPagadosHoy = 0;
   totalIngresosHoy = 0;
-  totalCuentasSenasa = 0;
   totalIngresosNormalesHoy = 0;
   totalPendienteSenasaHoy = 0;
+  totalPendienteRenacerHoy = 0;
 
   pagoEnProceso = false;
   ultimoCobroTicketCodigo = '';
@@ -168,8 +168,8 @@ export class ModuloCajaComponent implements OnInit {
       await this.cargarTicketsPendientes();
       this.totalPagadosHoy = await this.contarCobrosHoy();
       this.totalIngresosNormalesHoy = await this.sumarCobrosNormalesHoy();
-      this.totalCuentasSenasa = await this.contarCuentasSenasaHoy();
-      this.totalPendienteSenasaHoy = await this.sumarPendienteSenasaHoy();
+      this.totalPendienteSenasaHoy = await this.sumarPendienteSeguroHoy(['SENASA SUBSIDIADO', 'SENASA CONTRIBUTIVO', 'SENASA']);
+      this.totalPendienteRenacerHoy = await this.sumarPendienteSeguroHoy(['ARS RENACER']);
       this.totalIngresosHoy = this.totalIngresosNormalesHoy;
     } catch (error) {
       console.error('Error cargando caja:', error);
@@ -200,39 +200,27 @@ export class ModuloCajaComponent implements OnInit {
       .select('monto_servicio, metodo_pago')
       .gte('created_at', inicio)
       .lt('created_at', fin)
-      .neq('metodo_pago', 'senasa');
+      .neq('metodo_pago', 'senasa')
+      .neq('metodo_pago', 'renacer');
 
     if (error) throw error;
     return (data ?? []).reduce((acc: number, row: { monto_servicio: number }) => acc + Number(row.monto_servicio ?? 0), 0);
   }
 
-  private async sumarPendienteSenasaHoy(): Promise<number> {
+  private async sumarPendienteSeguroHoy(aseguradoras: string[]): Promise<number> {
     const { inicio, fin } = this.obtenerRangoDia();
     const { data, error } = await this.supabaseService
       .getClient()
       .from('cuentas_por_cobrar')
-      .select('monto_pendiente')
-      .eq('aseguradora', 'SENASA')
+      .select('monto_pendiente, aseguradora')
       .eq('estado', 'pendiente')
       .gte('created_at', inicio)
       .lt('created_at', fin);
 
     if (error) throw error;
-    return (data ?? []).reduce((acc: number, row: { monto_pendiente: number }) => acc + Number(row.monto_pendiente ?? 0), 0);
-  }
-
-  private async contarCuentasSenasaHoy(): Promise<number> {
-    const { inicio, fin } = this.obtenerRangoDia();
-    const { count, error } = await this.supabaseService
-      .getClient()
-      .from('cuentas_por_cobrar')
-      .select('id', { count: 'exact', head: true })
-      .eq('aseguradora', 'SENASA')
-      .gte('created_at', inicio)
-      .lt('created_at', fin);
-
-    if (error) throw error;
-    return count ?? 0;
+    return (data ?? [])
+      .filter((row: { aseguradora?: string | null }) => this.esSeguroIncluido(row.aseguradora, aseguradoras))
+      .reduce((acc: number, row: { monto_pendiente: number }) => acc + Number(row.monto_pendiente ?? 0), 0);
   }
 
   private obtenerRangoDia() {
@@ -275,6 +263,19 @@ export class ModuloCajaComponent implements OnInit {
     return (valor ?? '').toString().trim();
   }
 
+  private esSeguroIncluido(aseguradora: string | null | undefined, objetivos: string[]): boolean {
+    const valor = this.normalizarTexto(aseguradora).toUpperCase();
+    if (!valor) return false;
+
+    return objetivos.some((objetivo) => {
+      const comparacion = objetivo.toUpperCase();
+      if (comparacion === 'SENASA') {
+        return valor.includes('SENASA');
+      }
+      return valor === comparacion;
+    });
+  }
+
   private esDatoPacientePendiente(ticket: TicketPendiente): boolean {
     const nombre = this.normalizarTexto(ticket.pacienteNombre).toUpperCase();
     const cedula = this.normalizarTexto(ticket.pacienteCedula).toUpperCase();
@@ -296,7 +297,7 @@ export class ModuloCajaComponent implements OnInit {
     this.pacienteEncontrado = true;
   }
 
-  private async crearCuentaSenasa(cuenta: CuentaPorCobrarDb) {
+  private async crearCuentaSeguro(cuenta: CuentaPorCobrarDb) {
     const { data, error } = await this.supabaseService
       .getClient()
       .from('cuentas_por_cobrar')
@@ -332,6 +333,10 @@ export class ModuloCajaComponent implements OnInit {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio) return this.ticketSeleccionado?.monto ?? 0;
 
+    if (this.ticketCobro.metodoPago === 'renacer' && servicio.aplica_seguro) {
+      return Number(servicio.precio_renacer ?? servicio.precio ?? 0);
+    }
+
     if (this.ticketCobro.metodoPago === 'senasa' && servicio.aplica_seguro) {
       if (this.ticketCobro.planSeguro === 'subsidiado' && servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
         return Number(servicio.precio_subsidiado);
@@ -339,10 +344,7 @@ export class ModuloCajaComponent implements OnInit {
       if (this.ticketCobro.planSeguro === 'contributivo' && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
         return Number(servicio.precio_contributivo);
       }
-      if (this.ticketCobro.planSeguro === 'renacer' && servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
-        return Number(servicio.precio_renacer);
-      }
-      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
+      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
     }
 
     return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
@@ -352,33 +354,50 @@ export class ModuloCajaComponent implements OnInit {
     return this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId) ?? null;
   }
 
+  get servicioPermiteSenasaSeleccionado(): boolean {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio?.aplica_seguro) return false;
+    return (
+      servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined
+    ) || (
+      servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined
+    );
+  }
+
+  get servicioPermiteRenacerSeleccionado(): boolean {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio?.aplica_seguro) return false;
+    return servicio.precio_renacer !== null && servicio.precio_renacer !== undefined;
+  }
+
   get servicioPermiteSeguroSeleccionado(): boolean {
-    return !!this.servicioSeleccionadoCobro?.aplica_seguro;
+    return this.servicioPermiteSenasaSeleccionado || this.servicioPermiteRenacerSeleccionado;
   }
 
   get precioSeguroDisponible(): number {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio || !servicio.aplica_seguro) return 0;
+    if (this.ticketCobro.metodoPago === 'renacer') {
+      return Number(servicio.precio_renacer ?? servicio.precio);
+    }
     if (this.ticketCobro.planSeguro === 'subsidiado') {
       return Number(servicio.precio_subsidiado ?? servicio.precio);
     }
     if (this.ticketCobro.planSeguro === 'contributivo') {
       return Number(servicio.precio_contributivo ?? servicio.precio);
     }
-    if (this.ticketCobro.planSeguro === 'renacer') {
-      return Number(servicio.precio_renacer ?? servicio.precio);
-    }
     return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
   }
 
   get nombreAseguradoraSeleccionada(): string {
+    if (this.ticketCobro.metodoPago === 'renacer') {
+      return 'ARS RENACER';
+    }
     switch (this.ticketCobro.planSeguro) {
       case 'subsidiado':
         return 'SENASA SUBSIDIADO';
       case 'contributivo':
         return 'SENASA CONTRIBUTIVO';
-      case 'renacer':
-        return 'ARS RENACER';
       default:
         return '';
     }
@@ -578,10 +597,16 @@ export class ModuloCajaComponent implements OnInit {
 
   onServicioCobroChange() {
     const servicio = this.servicioSeleccionadoCobro;
-    if (servicio && !servicio.aplica_seguro && this.ticketCobro.metodoPago === 'senasa') {
-      this.ticketCobro.metodoPago = 'efectivo';
-      this.ticketCobro.planSeguro = '';
-      this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica seguro. Se ajustó el método de pago a efectivo.');
+    const requiereSeguro = this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer';
+
+    if (servicio && requiereSeguro) {
+      const permiteSenasa = this.ticketCobro.metodoPago === 'senasa' && this.servicioPermiteSenasaSeleccionado;
+      const permiteRenacer = this.ticketCobro.metodoPago === 'renacer' && this.servicioPermiteRenacerSeleccionado;
+      if (!servicio.aplica_seguro || (!permiteSenasa && !permiteRenacer)) {
+        this.ticketCobro.metodoPago = 'efectivo';
+        this.ticketCobro.planSeguro = '';
+        this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica la cobertura seleccionada. Se ajustó el método de pago a efectivo.');
+      }
     }
 
     if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
@@ -590,16 +615,18 @@ export class ModuloCajaComponent implements OnInit {
           this.ticketCobro.planSeguro = 'subsidiado';
         } else if (servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
           this.ticketCobro.planSeguro = 'contributivo';
-        } else if (servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
-          this.ticketCobro.planSeguro = 'renacer';
+        } else {
+          this.ticketCobro.planSeguro = 'subsidiado';
         }
       }
+    } else if (this.ticketCobro.metodoPago === 'renacer' && servicio?.aplica_seguro) {
+      this.ticketCobro.planSeguro = 'renacer';
     } else if (this.ticketCobro.metodoPago !== 'senasa') {
       this.ticketCobro.planSeguro = '';
     }
 
-    if (this.ticketCobro.metodoPago === 'senasa' && servicio?.aplica_seguro) {
-      this.ticketCobro.seguroNombre = this.nombreAseguradoraSeleccionada || this.ticketCobro.seguroNombre || 'SENASA';
+    if (requiereSeguro && servicio?.aplica_seguro) {
+      this.ticketCobro.seguroNombre = this.nombreAseguradoraSeleccionada || this.ticketCobro.seguroNombre || (this.ticketCobro.metodoPago === 'renacer' ? 'ARS RENACER' : 'SENASA');
     } else {
       this.ticketCobro.seguroNombre = '';
     }
@@ -642,17 +669,22 @@ export class ModuloCajaComponent implements OnInit {
       return;
     }
 
-    if (this.ticketCobro.metodoPago === 'senasa' && !this.servicioPermiteSeguroSeleccionado) {
-      this.mostrarNotificacion('error', 'Seguro no disponible', 'El servicio seleccionado no aplica seguro.');
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.servicioPermiteSenasaSeleccionado) {
+      this.mostrarNotificacion('error', 'Seguro no disponible', 'El servicio seleccionado no aplica cobertura SENASA.');
       return;
     }
 
-    if (this.ticketCobro.metodoPago === 'senasa' && !this.ticketCobro.seguroNumero.trim()) {
+    if (this.ticketCobro.metodoPago === 'renacer' && !this.servicioPermiteRenacerSeleccionado) {
+      this.mostrarNotificacion('error', 'Seguro no disponible', 'El servicio seleccionado no aplica cobertura ARS Renacer.');
+      return;
+    }
+
+    if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && !this.ticketCobro.seguroNumero.trim()) {
       this.mostrarNotificacion('error', 'Seguro requerido', 'Ingrese el nÃºmero de afiliaciÃ³n del seguro.');
       return;
     }
 
-    if (this.ticketCobro.metodoPago === 'senasa' && !this.nombreAseguradoraSeleccionada) {
+    if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && !this.nombreAseguradoraSeleccionada) {
       this.mostrarNotificacion('error', 'Cobertura requerida', 'Seleccione una cobertura de seguro.');
       return;
     }
@@ -688,8 +720,8 @@ export class ModuloCajaComponent implements OnInit {
         monto_recibido: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.montoRecibido : null,
         cambio: this.ticketCobro.metodoPago === 'efectivo' ? this.ticketCobro.cambio : null,
         referencia_pago: this.ticketCobro.referenciaPago || null,
-        seguro_nombre: this.ticketCobro.metodoPago === 'senasa' ? (this.ticketCobro.seguroNombre || 'SENASA') : null,
-        seguro_numero: this.ticketCobro.metodoPago === 'senasa' ? this.ticketCobro.seguroNumero : null,
+        seguro_nombre: this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer' ? (this.ticketCobro.seguroNombre || this.nombreAseguradoraSeleccionada) : null,
+        seguro_numero: this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer' ? this.ticketCobro.seguroNumero : null,
         area_destino: areaDestino,
         estado: 'pagado',
         cajero: this.usuarioNombre
@@ -723,8 +755,8 @@ export class ModuloCajaComponent implements OnInit {
         archivo_pdf_url: null
       });
 
-      if (this.ticketCobro.metodoPago === 'senasa') {
-        await this.crearCuentaSenasa({
+      if (this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') {
+        await this.crearCuentaSeguro({
           turno_id: this.ticketSeleccionado.id,
           cobro_id: cobro.id,
           codigo_ticket: this.ticketSeleccionado.codigo,
@@ -732,22 +764,24 @@ export class ModuloCajaComponent implements OnInit {
           paciente_cedula: this.ticketSeleccionado.pacienteCedula,
           servicio_nombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
           servicio_id: servicio?.id ?? this.ticketCobro.servicioCobroId,
-          aseguradora: this.ticketCobro.seguroNombre?.trim() || 'SENASA',
+          aseguradora: this.ticketCobro.seguroNombre?.trim() || this.nombreAseguradoraSeleccionada || 'SENASA',
           monto_total: total,
           monto_pagado_paciente: 0,
           monto_pendiente: total,
           estado: 'pendiente',
           fecha_vencimiento: null,
-          notas: 'Cuenta por cobrar generada desde caja por cobertura SENASA'
+          notas: `Cuenta por cobrar generada desde caja por cobertura ${this.ticketCobro.seguroNombre?.trim() || 'seguro'}`
         });
       } else {
         this.totalIngresosNormalesHoy += total;
       }
 
       this.totalIngresosHoy = this.totalIngresosNormalesHoy;
-      this.totalPendienteSenasaHoy = this.ticketCobro.metodoPago === 'senasa'
-        ? this.totalPendienteSenasaHoy + total
-        : this.totalPendienteSenasaHoy;
+      if (this.ticketCobro.metodoPago === 'senasa') {
+        this.totalPendienteSenasaHoy += total;
+      } else if (this.ticketCobro.metodoPago === 'renacer') {
+        this.totalPendienteRenacerHoy += total;
+      }
 
       this.totalPagadosHoy += 1;
       this.ultimoCobroTicketCodigo = this.ticketSeleccionado.codigo;
@@ -763,17 +797,17 @@ export class ModuloCajaComponent implements OnInit {
       };
 
       const textoPago =
-        this.ticketCobro.metodoPago === 'senasa'
-          ? `Turno ${this.ticketSeleccionado.codigo} registrado con SENASA. Queda pendiente por cobrar a la aseguradora.`
+        this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
+          ? `Turno ${this.ticketSeleccionado.codigo} registrado con ${this.nombreAseguradoraSeleccionada}. Queda pendiente por cobrar a la aseguradora.`
           : `Turno ${this.ticketSeleccionado.codigo} pagado. DirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.mostrarNotificacion('success', 'Pago exitoso', textoPago);
 
       this.mensajePacienteCobro =
-        this.ticketCobro.metodoPago === 'senasa'
+        this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
           ? `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
               2
-            )}\n\nSENASA: cuenta registrada como pendiente de cobro a la aseguradora.`
+            )}\n\n${this.nombreAseguradoraSeleccionada}: cuenta registrada como pendiente de cobro a la aseguradora.`
           : `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
               2
             )}\n\nINDICACIÃ“N PARA EL PACIENTE:\nDirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
