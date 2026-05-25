@@ -208,6 +208,16 @@
   font-size: 15px;
 }
 
+.queue-note {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #1d3973;
+  font-weight: 600;
+}
+
 .queue-list {
   display: flex;
   flex-direction: column;
@@ -557,10 +567,14 @@
 
 /* Action Buttons */
 .action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 8px;
+}
+
+.action-buttons > button {
+  flex: 1 1 220px;
 }
 
 /* Doctor Panel */

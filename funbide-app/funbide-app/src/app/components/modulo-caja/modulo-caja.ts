@@ -90,6 +90,7 @@ export class ModuloCajaComponent implements OnInit {
   ticketsPendientes: TicketPendiente[] = [];
   serviciosDisponibles: ServicioPrecioDb[] = [];
   busquedaServicio = '';
+  busquedaTicket = '';
 
   totalPendientes = 0;
   totalPagadosHoy = 0;
@@ -151,6 +152,7 @@ export class ModuloCajaComponent implements OnInit {
     this.ticketSeleccionado = null;
     this.ultimoCobroTicketCodigo = '';
     this.busquedaServicio = '';
+    this.busquedaTicket = '';
     this.areaDestinoMensaje = '';
     this.mensajePacienteCobro = null;
     this.reciboUltimoCobro = null;
@@ -312,6 +314,16 @@ export class ModuloCajaComponent implements OnInit {
 
     return this.serviciosDisponibles.filter((item) => {
       const campo = `${item.codigo} ${item.nombre} ${item.categoria} ${item.area_destino}`.toLowerCase();
+      return campo.includes(texto);
+    });
+  }
+
+  get ticketsPendientesFiltrados(): TicketPendiente[] {
+    const texto = this.busquedaTicket.trim().toLowerCase();
+    if (!texto) return this.ticketsPendientes;
+
+    return this.ticketsPendientes.filter((ticket) => {
+      const campo = `${ticket.codigo} ${ticket.pacienteNombre} ${ticket.pacienteCedula} ${ticket.servicioNombre} ${ticket.areaDestino} ${ticket.categoria}`.toLowerCase();
       return campo.includes(texto);
     });
   }
@@ -496,6 +508,46 @@ export class ModuloCajaComponent implements OnInit {
     } catch (error) {
       console.error('Error llamando ticket:', error);
       this.mostrarNotificacion('error', 'Error', 'No se pudo llamar el ticket.');
+    }
+  }
+
+  async cancelarTurnoPorAusencia() {
+    if (!this.ticketSeleccionado) {
+      this.mostrarNotificacion('error', 'Error', 'Debe seleccionar un ticket.');
+      return;
+    }
+
+    if (this.ticketSeleccionado.estado !== 'atendiendo') {
+      this.mostrarNotificacion('warning', 'No permitido', 'Solo puede cancelar un turno cuando está en atención.');
+      return;
+    }
+
+    const confirmar = confirm(
+      `Confirme que el paciente del turno ${this.ticketSeleccionado.codigo} no se presentó y desea cancelar el turno.`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      await this.turnosDbService.cancelarTurno(this.ticketSeleccionado.id, {
+        puesto_atencion: this.ticketSeleccionado.areaDestino || 'Caja',
+        fecha_cancelacion: new Date().toISOString(),
+        motivo_cancelacion: 'Paciente ausente en atención',
+        cancelado_por: this.usuarioNombre
+      });
+
+      this.mostrarNotificacion(
+        'warning',
+        'Turno cancelado',
+        `El turno ${this.ticketSeleccionado.codigo} fue cancelado por ausencia del paciente.`
+      );
+
+      this.resetFlujo();
+      await this.cargarTicketsPendientes();
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error cancelando turno:', error);
+      this.mostrarNotificacion('error', 'Error', 'No se pudo cancelar el turno.');
     }
   }
 

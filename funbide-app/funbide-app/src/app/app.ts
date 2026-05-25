@@ -83,7 +83,8 @@ export class App {
     Cuadre: 'cuadre',
     'Supervisión': 'cuadre',
     Supervision: 'cuadre',
-    Administrador: null
+    Administrador: null,
+    'Administración': null
   };
 
   private readonly moduleCatalog: ModuleCard[] = [
@@ -230,16 +231,16 @@ export class App {
   }
 
   private getVisibleModulesForRole(role: string): ModuleCard[] {
+    if (role === 'Administrador' || role === 'Administración') {
+      return this.moduleCatalog;
+    }
+
     if (role === 'Caja / Kiosko') {
       return this.moduleCatalog.filter(module => module.id === 'generarTurno');
     }
 
     if (role === 'Kiosko') {
       return this.moduleCatalog.filter(module => module.id === 'generarTurno');
-    }
-
-    if (role === 'Administrador') {
-      return this.moduleCatalog;
     }
 
     const roleSpecific: Record<string, string[]> = {

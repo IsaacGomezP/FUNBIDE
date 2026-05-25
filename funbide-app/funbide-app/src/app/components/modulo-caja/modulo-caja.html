@@ -59,11 +59,13 @@
 
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" placeholder="Buscar por ticket, cédula o nombre..." />
+          <input type="text" [(ngModel)]="busquedaTicket" placeholder="Buscar por ticket, cédula o nombre..." />
         </div>
 
+        <div class="queue-note">Puede llamar cualquier turno sin seguir el orden de llegada.</div>
+
         <div class="queue-list">
-          @for (ticket of ticketsPendientes; track ticket.id) {
+          @for (ticket of ticketsPendientesFiltrados; track ticket.id) {
             <div class="queue-item" [class.selected]="ticketSeleccionado?.id === ticket.id">
               <div class="item-code">{{ ticket.codigo }}</div>
               <div class="item-info">
@@ -256,6 +258,11 @@
             <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso">
               <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
             </button>
+            @if (ticketSeleccionado.estado === 'atendiendo') {
+              <button class="btn-warning" type="button" (click)="cancelarTurnoPorAusencia()" [disabled]="pagoEnProceso">
+                <i class="fas fa-user-slash"></i> Cancelar por ausencia
+              </button>
+            }
             <button class="btn-secondary" (click)="imprimirComprobante()">
               <i class="fas fa-print"></i> Imprimir
             </button>

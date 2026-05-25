@@ -18,6 +18,9 @@ export interface TurnoDb {
   fecha_creado: string;
   fecha_llamado: string | null;
   fecha_atencion: string | null;
+  fecha_cancelacion?: string | null;
+  motivo_cancelacion?: string | null;
+  cancelado_por?: string | null;
 }
 
 @Injectable({
@@ -73,8 +76,7 @@ export class TurnosDbService {
     const { data, error } = await this.client
       .from('turnos')
       .select('*')
-      .eq('estado', 'espera')
-      .order('fecha_creado', { ascending: true });
+      .eq('estado', 'espera');
 
     if (error) throw error;
     return (data ?? []) as TurnoDb[];
@@ -97,7 +99,7 @@ export class TurnosDbService {
 
   async actualizarTurnoEstado(
     id: string,
-    cambios: Partial<Pick<TurnoDb, 'estado' | 'puesto_atencion' | 'fecha_llamado' | 'fecha_atencion'>>
+    cambios: Partial<Pick<TurnoDb, 'estado' | 'puesto_atencion' | 'fecha_llamado' | 'fecha_atencion' | 'fecha_cancelacion' | 'motivo_cancelacion' | 'cancelado_por'>>
   ) {
     const { data, error } = await this.client
       .from('turnos')
@@ -125,11 +127,32 @@ export class TurnosDbService {
       | 'servicio_id'
       | 'servicio_nombre'
       | 'categoria'
+      | 'fecha_cancelacion'
+      | 'motivo_cancelacion'
+      | 'cancelado_por'
     >>
   ) {
     const { data, error } = await this.client
       .from('turnos')
       .update(cambios)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as TurnoDb;
+  }
+
+  async cancelarTurno(
+    id: string,
+    cambios: Partial<Pick<TurnoDb, 'puesto_atencion' | 'fecha_cancelacion' | 'motivo_cancelacion' | 'cancelado_por'>>
+  ) {
+    const { data, error } = await this.client
+      .from('turnos')
+      .update({
+        ...cambios,
+        estado: 'cancelado'
+      })
       .eq('id', id)
       .select()
       .single();

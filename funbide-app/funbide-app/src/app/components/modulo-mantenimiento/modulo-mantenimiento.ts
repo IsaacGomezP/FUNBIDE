@@ -36,6 +36,7 @@ export class ModuloMantenimientoComponent implements OnInit {
   usuarioForm: UsuarioForm = this.formularioInicial();
 
   rolesDisponibles = [
+    'Administración',
     'Administrador',
     'Cajero',
     'Kiosko',
