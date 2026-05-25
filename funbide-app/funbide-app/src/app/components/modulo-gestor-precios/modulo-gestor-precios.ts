@@ -35,7 +35,10 @@ export class ModuloGestorPreciosComponent implements OnInit {
   importando = false;
   toast = '';
   toastType: 'success' | 'warning' | 'danger' | 'info' = 'info';
-  filtro = '';
+  filtroTexto = '';
+  filtroEstado: 'todos' | 'activos' | 'inactivos' = 'todos';
+  filtroCategoria = 'todas';
+  filtroCobertura: 'todas' | 'con_seguro' | 'sin_seguro' = 'todas';
   modoEdicion = false;
   archivoNombre = '';
   servicios: ServicioPrecioDb[] = [];
@@ -44,6 +47,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
   resumen = {
     total: 0,
     activos: 0,
+    inactivos: 0,
     conSeguro: 0,
     sinSeguro: 0
   };
@@ -77,21 +81,48 @@ export class ModuloGestorPreciosComponent implements OnInit {
   }
 
   get serviciosFiltrados(): ServicioPrecioDb[] {
-    const texto = this.filtro.trim().toLowerCase();
-    if (!texto) return this.servicios;
     return this.servicios.filter(servicio => {
-      const bloque = [
-        servicio.codigo,
-        servicio.nombre,
-        servicio.area_destino,
-        servicio.categoria,
-        servicio.precio.toString(),
-        servicio.precio_subsidiado?.toString() ?? '',
-        servicio.precio_contributivo?.toString() ?? '',
-        servicio.precio_renacer?.toString() ?? ''
-      ].join(' ').toLowerCase();
-      return bloque.includes(texto);
+      const texto = this.filtroTexto.trim().toLowerCase();
+      const coincideTexto = !texto || this.coincideTexto(servicio, texto);
+      const coincideEstado =
+        this.filtroEstado === 'todos' ||
+        (this.filtroEstado === 'activos' && servicio.activo) ||
+        (this.filtroEstado === 'inactivos' && !servicio.activo);
+      const coincideCategoria =
+        this.filtroCategoria === 'todas' ||
+        this.claveNormalizada(servicio.categoria) === this.claveNormalizada(this.filtroCategoria);
+      const coincideCobertura =
+        this.filtroCobertura === 'todas' ||
+        (this.filtroCobertura === 'con_seguro' && !!servicio.aplica_seguro) ||
+        (this.filtroCobertura === 'sin_seguro' && !servicio.aplica_seguro);
+
+      return coincideTexto && coincideEstado && coincideCategoria && coincideCobertura;
     });
+  }
+
+  get categoriasDisponibles(): string[] {
+    const categorias = new Set(
+      this.servicios
+        .map(servicio => this.textoCapitalizado(servicio.categoria))
+        .filter(Boolean)
+    );
+
+    return Array.from(categorias).sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  private coincideTexto(servicio: ServicioPrecioDb, texto: string): boolean {
+    const bloque = [
+      servicio.codigo,
+      servicio.nombre,
+      servicio.area_destino,
+      servicio.categoria,
+      servicio.precio.toString(),
+      servicio.precio_subsidiado?.toString() ?? '',
+      servicio.precio_contributivo?.toString() ?? '',
+      servicio.precio_renacer?.toString() ?? ''
+    ].join(' ').toLowerCase();
+
+    return bloque.includes(texto);
   }
 
   async cargarServicios() {
@@ -113,9 +144,17 @@ export class ModuloGestorPreciosComponent implements OnInit {
     this.resumen = {
       total: this.servicios.length,
       activos: this.servicios.filter(servicio => servicio.activo).length,
+      inactivos: this.servicios.filter(servicio => !servicio.activo).length,
       conSeguro: this.servicios.filter(servicio => !!servicio.aplica_seguro).length,
       sinSeguro: this.servicios.filter(servicio => !servicio.aplica_seguro).length
     };
+  }
+
+  limpiarFiltros() {
+    this.filtroTexto = '';
+    this.filtroEstado = 'todos';
+    this.filtroCategoria = 'todas';
+    this.filtroCobertura = 'todas';
   }
 
   nuevoServicio() {
@@ -195,7 +234,24 @@ export class ModuloGestorPreciosComponent implements OnInit {
       await this.cargarServicios();
     } catch (error) {
       console.error('Error eliminando servicio', error);
-      this.toastMessage('No se pudo eliminar el servicio.', 'danger');
+      this.toastMessage('No se pudo eliminar el servicio. Verifica permisos o policies en Supabase.', 'danger');
+    }
+  }
+
+  async cambiarEstadoServicio(servicio: ServicioPrecioDb) {
+    const nuevoEstado = !servicio.activo;
+
+    try {
+      if (nuevoEstado) {
+        await this.serviciosDb.activar(servicio.id);
+      } else {
+        await this.serviciosDb.inactivar(servicio.id);
+      }
+      this.toastMessage(`Servicio ${nuevoEstado ? 'activado' : 'inactivado'} correctamente.`, 'success');
+      await this.cargarServicios();
+    } catch (error) {
+      console.error('Error cambiando estado del servicio', error);
+      this.toastMessage('No se pudo cambiar el estado del servicio.', 'danger');
     }
   }
 
@@ -334,6 +390,17 @@ export class ModuloGestorPreciosComponent implements OnInit {
 
   private textoCelda(valor: any): string {
     return String(valor ?? '').trim();
+  }
+
+  private textoCapitalizado(valor: string): string {
+    return this.textoCelda(valor)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
   }
 
   private tituloCategoria(valor: string): string {

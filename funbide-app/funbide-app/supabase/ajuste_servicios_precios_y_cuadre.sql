@@ -11,6 +11,41 @@ set
   precio_renacer = coalesce(precio_renacer, precio)
 where precio_subsidiado is null or precio_contributivo is null or precio_renacer is null;
 
+alter table if exists public.servicios_precios enable row level security;
+
+grant select, insert, update, delete on public.servicios_precios to anon;
+grant select, insert, update, delete on public.servicios_precios to authenticated;
+
+drop policy if exists "servicios_precios_select_public" on public.servicios_precios;
+drop policy if exists "servicios_precios_insert_public" on public.servicios_precios;
+drop policy if exists "servicios_precios_update_public" on public.servicios_precios;
+drop policy if exists "servicios_precios_delete_public" on public.servicios_precios;
+
+create policy "servicios_precios_select_public"
+on public.servicios_precios
+for select
+to anon, authenticated
+using (true);
+
+create policy "servicios_precios_insert_public"
+on public.servicios_precios
+for insert
+to anon, authenticated
+with check (true);
+
+create policy "servicios_precios_update_public"
+on public.servicios_precios
+for update
+to anon, authenticated
+using (true)
+with check (true);
+
+create policy "servicios_precios_delete_public"
+on public.servicios_precios
+for delete
+to anon, authenticated
+using (true);
+
 alter table if exists public.cuadres_caja
   add column if not exists total_senasa_subsidiado numeric(12,2) not null default 0,
   add column if not exists total_senasa_contributivo numeric(12,2) not null default 0,

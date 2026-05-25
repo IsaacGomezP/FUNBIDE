@@ -43,6 +43,7 @@ export class ServiciosPreciosDbService {
     const { data, error } = await this.client
       .from('servicios_precios')
       .select('*')
+      .order('activo', { ascending: false })
       .order('categoria', { ascending: true })
       .order('nombre', { ascending: true });
 
@@ -71,6 +72,14 @@ export class ServiciosPreciosDbService {
 
     if (error) throw error;
     return data as ServicioPrecioDb;
+  }
+
+  async activar(id: string) {
+    return this.actualizar(id, { activo: true });
+  }
+
+  async inactivar(id: string) {
+    return this.actualizar(id, { activo: false });
   }
 
   async eliminar(id: string) {

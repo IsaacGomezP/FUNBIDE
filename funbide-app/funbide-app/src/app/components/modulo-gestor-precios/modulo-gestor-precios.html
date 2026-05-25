@@ -37,25 +37,25 @@
       </div>
     </div>
 
-    <div class="hero-metrics">
-      <div class="metric-card accent">
-        <span>Total servicios</span>
-        <strong>{{ resumen.total }}</strong>
+      <div class="hero-metrics">
+        <div class="metric-card accent">
+          <span>Total servicios</span>
+          <strong>{{ resumen.total }}</strong>
+        </div>
+        <div class="metric-card">
+          <span>Activos</span>
+          <strong>{{ resumen.activos }}</strong>
+        </div>
+        <div class="metric-card">
+          <span>Inactivos</span>
+          <strong>{{ resumen.inactivos }}</strong>
+        </div>
+        <div class="metric-card muted">
+          <span>Con cobertura</span>
+          <strong>{{ resumen.conSeguro }}</strong>
+        </div>
       </div>
-      <div class="metric-card">
-        <span>Activos</span>
-        <strong>{{ resumen.activos }}</strong>
-      </div>
-      <div class="metric-card">
-        <span>Con cobertura</span>
-        <strong>{{ resumen.conSeguro }}</strong>
-      </div>
-      <div class="metric-card muted">
-        <span>Sin seguro</span>
-        <strong>{{ resumen.sinSeguro }}</strong>
-      </div>
-    </div>
-  </section>
+    </section>
 
   <div class="toast" *ngIf="toast" [class.success]="toastType === 'success'" [class.warning]="toastType === 'warning'" [class.danger]="toastType === 'danger'">
     {{ toast }}
@@ -154,9 +154,46 @@
         <span class="result-chip">{{ serviciosFiltrados.length }} encontrados</span>
       </div>
 
-      <div class="search-box elevated">
-        <i class="fas fa-search"></i>
-        <input type="text" [(ngModel)]="filtro" placeholder="Buscar por código, nombre, categoría o precio">
+      <div class="filters-panel">
+        <div class="search-box elevated">
+          <i class="fas fa-search"></i>
+          <input type="text" [(ngModel)]="filtroTexto" placeholder="Buscar por código, nombre, categoría o precio">
+        </div>
+
+        <div class="filters-grid">
+          <div class="field compact">
+            <label>Estado</label>
+            <select [(ngModel)]="filtroEstado">
+              <option value="todos">Todos</option>
+              <option value="activos">Solo activos</option>
+              <option value="inactivos">Solo inactivos</option>
+            </select>
+          </div>
+
+          <div class="field compact">
+            <label>Categoría</label>
+            <select [(ngModel)]="filtroCategoria">
+              <option value="todas">Todas</option>
+              @for (categoria of categoriasDisponibles; track categoria) {
+                <option [value]="categoria">{{ categoria }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field compact">
+            <label>Cobertura</label>
+            <select [(ngModel)]="filtroCobertura">
+              <option value="todas">Todas</option>
+              <option value="con_seguro">Con seguro</option>
+              <option value="sin_seguro">Sin seguro</option>
+            </select>
+          </div>
+
+          <button class="secondary-btn filters-reset" type="button" (click)="limpiarFiltros()">
+            <i class="fas fa-xmark"></i>
+            <span>Limpiar filtros</span>
+          </button>
+        </div>
       </div>
 
       @if (loading) {
@@ -168,9 +205,15 @@
           @for (servicio of serviciosFiltrados; track servicio.id) {
             <div class="service-row" [class.off]="!servicio.activo">
               <div class="service-main">
-                <strong>{{ servicio.nombre }}</strong>
-                <span>{{ servicio.codigo }} · {{ servicio.categoria }}</span>
-                <small>{{ servicio.area_destino }}</small>
+                <div class="service-title-line">
+                  <strong>{{ servicio.nombre }}</strong>
+                  <span class="badge" [class.off]="!servicio.activo">{{ servicio.activo ? 'Activo' : 'Inactivo' }}</span>
+                </div>
+                <div class="service-meta">
+                  <span>{{ servicio.codigo }}</span>
+                  <span>{{ servicio.categoria }}</span>
+                  <span>{{ servicio.area_destino }}</span>
+                </div>
                 <div class="price-tags">
                   <span>Base: RD$ {{ servicio.precio | number:'1.2-2' }}</span>
                   @if (servicio.aplica_seguro) {
@@ -183,9 +226,15 @@
                 </div>
               </div>
               <div class="service-actions">
-                <span class="badge" [class.off]="!servicio.activo">{{ servicio.activo ? 'Activo' : 'Inactivo' }}</span>
-                <button (click)="editarServicio(servicio)" title="Editar"><i class="fas fa-pen"></i></button>
-                <button (click)="eliminarServicio(servicio)" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <button type="button" (click)="editarServicio(servicio)" title="Editar">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" (click)="cambiarEstadoServicio(servicio)" [title]="servicio.activo ? 'Inactivar' : 'Activar'">
+                  <i class="fas" [ngClass]="servicio.activo ? 'fa-toggle-off' : 'fa-toggle-on'"></i>
+                </button>
+                <button type="button" class="danger" (click)="eliminarServicio(servicio)" title="Eliminar definitivamente">
+                  <i class="fas fa-trash"></i>
+                </button>
               </div>
             </div>
           }
