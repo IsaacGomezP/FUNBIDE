@@ -400,6 +400,16 @@ export class ModuloCajaComponent implements OnInit {
     );
   }
 
+  get servicioPermiteSenasaSubsidiadoSeleccionado(): boolean {
+    const servicio = this.servicioSeleccionadoCobro;
+    return !!servicio?.aplica_seguro && servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined;
+  }
+
+  get servicioPermiteSenasaContributivoSeleccionado(): boolean {
+    const servicio = this.servicioSeleccionadoCobro;
+    return !!servicio?.aplica_seguro && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined;
+  }
+
   get servicioPermiteRenacerSeleccionado(): boolean {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio?.aplica_seguro) return false;
@@ -470,6 +480,18 @@ export class ModuloCajaComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  seleccionarSenasaSubsidiado() {
+    this.ticketCobro.metodoPago = 'senasa';
+    this.ticketCobro.planSeguro = 'subsidiado';
+    this.onServicioCobroChange();
+  }
+
+  seleccionarSenasaContributivo() {
+    this.ticketCobro.metodoPago = 'senasa';
+    this.ticketCobro.planSeguro = 'contributivo';
+    this.onServicioCobroChange();
   }
 
   volver() {

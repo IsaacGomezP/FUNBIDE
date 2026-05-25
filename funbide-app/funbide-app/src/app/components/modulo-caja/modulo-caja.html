@@ -219,7 +219,20 @@
             <button class="method-btn cash" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="ticketCobro.metodoPago = 'efectivo'; onServicioCobroChange()"><i class="fas fa-money-bill"></i> Efectivo</button>
             <button class="method-btn card" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="ticketCobro.metodoPago = 'tarjeta'; onServicioCobroChange()"><i class="fas fa-credit-card"></i> Tarjeta</button>
             <button class="method-btn transfer" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="ticketCobro.metodoPago = 'transferencia'; onServicioCobroChange()"><i class="fas fa-university"></i> Transferencia</button>
-            <button class="method-btn senasa" [class.active]="ticketCobro.metodoPago === 'senasa'" (click)="ticketCobro.metodoPago = 'senasa'; onServicioCobroChange()" [disabled]="!servicioPermiteSenasaSeleccionado"><i class="fas fa-shield-alt"></i> SENASA</button>
+            <button
+              class="method-btn senasa subsidized"
+              [class.active]="ticketCobro.metodoPago === 'senasa' && ticketCobro.planSeguro === 'subsidiado'"
+              (click)="seleccionarSenasaSubsidiado()"
+              [disabled]="!servicioPermiteSenasaSubsidiadoSeleccionado">
+              <i class="fas fa-shield-alt"></i> SENASA Subsidiado
+            </button>
+            <button
+              class="method-btn senasa contributive"
+              [class.active]="ticketCobro.metodoPago === 'senasa' && ticketCobro.planSeguro === 'contributivo'"
+              (click)="seleccionarSenasaContributivo()"
+              [disabled]="!servicioPermiteSenasaContributivoSeleccionado">
+              <i class="fas fa-shield-alt"></i> SENASA Contributivo
+            </button>
             <button class="method-btn renacer" [class.active]="ticketCobro.metodoPago === 'renacer'" (click)="ticketCobro.metodoPago = 'renacer'; onServicioCobroChange()" [disabled]="!servicioPermiteRenacerSeleccionado"><i class="fas fa-umbrella"></i> RENACER</button>
           </div>
 
