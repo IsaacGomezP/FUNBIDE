@@ -1117,7 +1117,8 @@ export class ModuloCajaComponent implements OnInit {
       await this.cargarTicketsPendientes();
     } catch (error) {
       console.error('Error procesando cobro:', error);
-      this.mostrarNotificacion('error', 'Error', 'No se pudo completar el cobro.');
+      const detalle = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Error desconocido');
+      this.mostrarNotificacion('error', 'Error', `No se pudo completar el cobro. ${detalle}`);
     } finally {
       this.pagoEnProceso = false;
       this.cdr.detectChanges();
