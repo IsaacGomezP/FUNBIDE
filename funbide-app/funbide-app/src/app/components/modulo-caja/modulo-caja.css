@@ -556,6 +556,14 @@
   border-color: #2563eb;
 }
 
+.method-btn.clear {
+  color: #475569;
+}
+
+.method-btn.clear:hover {
+  border-color: #94a3b8;
+}
+
 /* Billing flow */
 .billing-flow {
   display: grid;

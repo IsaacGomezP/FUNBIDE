@@ -544,6 +544,10 @@ export class ModuloCajaComponent implements OnInit {
     this.onServicioCobroChange();
   }
 
+  quitarCoberturaSeleccionada() {
+    this.resetCoberturaSeleccionada();
+  }
+
   private resetCoberturaSeleccionada() {
     this.ticketCobro.metodoPago = 'efectivo';
     this.ticketCobro.planSeguro = '';
