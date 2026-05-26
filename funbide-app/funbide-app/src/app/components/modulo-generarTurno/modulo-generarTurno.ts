@@ -50,6 +50,11 @@ export class ModuloGenerarTurnoComponent implements OnInit, OnDestroy {
   servicios: ServicioTurno[] = [
     { id: 'medicina-general', nombre: 'Medicina General', categoria: 'Consulta', prefijo: 'MG', icono: 'fa-stethoscope', descripcion: 'Atencion medica general', tone: 'blue' },
     { id: 'ginecologia', nombre: 'Ginecologia', categoria: 'Consulta', prefijo: 'GY', icono: 'fa-female', descripcion: 'Atencion ginecologica y obstetrica', tone: 'violet' },
+    { id: 'diabetologia', nombre: 'Diabetologia', categoria: 'Consulta', prefijo: 'DB', icono: 'fa-droplet', descripcion: 'Control y seguimiento de diabetes', tone: 'teal' },
+    { id: 'odontologia', nombre: 'Odontologia', categoria: 'Consulta', prefijo: 'OD', icono: 'fa-tooth', descripcion: 'Atencion dental y revision oral', tone: 'amber' },
+    { id: 'gastroenterologia', nombre: 'Gastro', categoria: 'Consulta', prefijo: 'GA', icono: 'fa-notes-medical', descripcion: 'Consulta digestiva y del sistema gastrointestinal', tone: 'navy' },
+    { id: 'cardiologia', nombre: 'Cardiologia', categoria: 'Consulta', prefijo: 'CA', icono: 'fa-heart-pulse', descripcion: 'Control del corazon y presion arterial', tone: 'blue' },
+    { id: 'pediatria', nombre: 'Pediatria', categoria: 'Consulta', prefijo: 'PD', icono: 'fa-baby', descripcion: 'Atencion medica para ninos', tone: 'green' },
     { id: 'psicologia', nombre: 'Psicologia', categoria: 'Consulta', prefijo: 'PS', icono: 'fa-brain', descripcion: 'Apoyo emocional y evaluacion', tone: 'sky' },
     { id: 'sonografia', nombre: 'Sonografia', categoria: 'Imagenologia', prefijo: 'SO', icono: 'fa-wave-square', descripcion: 'Estudios de imagen', tone: 'teal' },
     { id: 'laboratorio', nombre: 'Laboratorio', categoria: 'Analisis', prefijo: 'LA', icono: 'fa-vial', descripcion: 'Toma y analisis de muestras', tone: 'green' },
