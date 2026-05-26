@@ -515,6 +515,49 @@ export class ModuloCajaComponent implements OnInit {
     this.onServicioCobroChange();
   }
 
+  toggleSenasaSubsidiado() {
+    const activo = this.ticketCobro.metodoPago === 'senasa' && this.ticketCobro.planSeguro === 'subsidiado';
+    if (activo) {
+      this.resetCoberturaSeleccionada();
+      return;
+    }
+    this.seleccionarSenasaSubsidiado();
+  }
+
+  toggleSenasaContributivo() {
+    const activo = this.ticketCobro.metodoPago === 'senasa' && this.ticketCobro.planSeguro === 'contributivo';
+    if (activo) {
+      this.resetCoberturaSeleccionada();
+      return;
+    }
+    this.seleccionarSenasaContributivo();
+  }
+
+  toggleRenacer() {
+    const activo = this.ticketCobro.metodoPago === 'renacer';
+    if (activo) {
+      this.resetCoberturaSeleccionada();
+      return;
+    }
+    this.ticketCobro.metodoPago = 'renacer';
+    this.ticketCobro.planSeguro = 'renacer';
+    this.onServicioCobroChange();
+  }
+
+  private resetCoberturaSeleccionada() {
+    this.ticketCobro.metodoPago = 'efectivo';
+    this.ticketCobro.planSeguro = '';
+    this.ticketCobro.seguroNombre = '';
+    this.ticketCobro.seguroNumero = '';
+    this.ticketCobro.requiereAportePaciente = false;
+    this.ticketCobro.aporteCliente = 0;
+    this.ticketCobro.pagosMultiples = false;
+    this.limpiarPagos();
+    this.ticketCobro.faseCobro = 'facturar';
+    this.calcularCambio();
+    this.cdr.detectChanges();
+  }
+
   seleccionarMetodoPagoSimple(metodo: MetodoPagoLinea) {
     this.ticketCobro.faseCobro = 'pagar';
 

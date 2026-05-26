@@ -229,18 +229,18 @@
                 <button
                   class="method-btn senasa subsidized"
                   [class.active]="ticketCobro.metodoPago === 'senasa' && ticketCobro.planSeguro === 'subsidiado'"
-                  (click)="seleccionarSenasaSubsidiado()"
+                  (click)="toggleSenasaSubsidiado()"
                   [disabled]="!servicioPermiteSenasaSubsidiadoSeleccionado">
                   <i class="fas fa-shield-alt"></i> SENASA Subsidiado
                 </button>
                 <button
                   class="method-btn senasa contributive"
                   [class.active]="ticketCobro.metodoPago === 'senasa' && ticketCobro.planSeguro === 'contributivo'"
-                  (click)="seleccionarSenasaContributivo()"
+                  (click)="toggleSenasaContributivo()"
                   [disabled]="!servicioPermiteSenasaContributivoSeleccionado">
                   <i class="fas fa-shield-alt"></i> SENASA Contributivo
                 </button>
-                <button class="method-btn renacer" [class.active]="ticketCobro.metodoPago === 'renacer'" (click)="ticketCobro.metodoPago = 'renacer'; onServicioCobroChange()" [disabled]="!servicioPermiteRenacerSeleccionado"><i class="fas fa-umbrella"></i> RENACER</button>
+                <button class="method-btn renacer" [class.active]="ticketCobro.metodoPago === 'renacer'" (click)="toggleRenacer()" [disabled]="!servicioPermiteRenacerSeleccionado"><i class="fas fa-umbrella"></i> RENACER</button>
               </div>
 
               <div class="extra-fields">
