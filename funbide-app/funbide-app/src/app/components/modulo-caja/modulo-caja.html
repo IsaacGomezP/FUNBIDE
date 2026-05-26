@@ -201,11 +201,6 @@
                   <div>
                     <strong>{{ servicio.nombre }}</strong>
                     <small>{{ servicio.codigo }} · Destino: {{ servicio.area_destino }}</small>
-                    @if (servicio.aplica_seguro) {
-                      <small>Seguro: RD$ {{ (servicio.precio_subsidiado ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_contributivo ?? servicio.precio) | number:'1.2-2' }} / RD$ {{ (servicio.precio_renacer ?? servicio.precio) | number:'1.2-2' }}</small>
-                    } @else {
-                      <small>No aplica seguro</small>
-                    }
                   </div>
                   <strong>RD$ {{ servicio.precio | number:'1.2-2' }}</strong>
                 </div>
@@ -219,10 +214,10 @@
             <div class="billing-card facturar-card">
               <div class="split-head">
                 <div>
-                  <span class="section-label">Facturar</span>
-                  <h3>Define cobertura y diferencia</h3>
+                  <span class="section-label">Cobro</span>
+                  <h3>Selecciona cobertura y registra el aporte</h3>
                 </div>
-                <span class="result-chip">Factura base preparada</span>
+                <span class="result-chip">Caja lista</span>
               </div>
 
               <div class="payment-methods facturar-methods">
@@ -257,23 +252,17 @@
                       <label>Número de Afiliación</label>
                       <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
                     </div>
-                    <div class="row">
-                      <label>Cobertura del seguro</label>
-                      <input type="text" [value]="'RD$ ' + (montoCoberturaSeguro | number:'1.2-2')" readonly />
-                      <label>Diferencia estimada</label>
-                      <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
-                    </div>
                     <div class="aporte-card">
                       <div class="aporte-card-head">
                         <div>
-                          <span class="section-label">Aporte del paciente</span>
-                          <h4>Ingrese la diferencia que pagará el paciente</h4>
+                          <span class="section-label">Aporte</span>
+                          <h4>Monto que pagará el paciente</h4>
                         </div>
                         <span class="aporte-badge">Editable</span>
                       </div>
                       <div class="row">
                         <div>
-                          <label>Monto a pagar</label>
+                          <label>Aporte del cliente</label>
                           <input
                             type="number"
                             step="0.01"
@@ -283,10 +272,10 @@
                             placeholder="0.00" />
                         </div>
                         <div class="info-card aporte-helper">
-                          Diferencia sugerida: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                          Sugerido: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
                         </div>
                       </div>
-                      <small class="aporte-note">Si el paciente no paga diferencia, deje el monto en 0.00.</small>
+                      <small class="aporte-note">Si no hay aporte, deje 0.00.</small>
                     </div>
                   }
                 } @else if (ticketCobro.metodoPago === 'renacer') {
@@ -299,23 +288,17 @@
                       <label>Número de Afiliación</label>
                       <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
                     </div>
-                    <div class="row">
-                      <label>Cobertura del seguro</label>
-                      <input type="text" [value]="'RD$ ' + (montoCoberturaSeguro | number:'1.2-2')" readonly />
-                      <label>Diferencia estimada</label>
-                      <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
-                    </div>
                     <div class="aporte-card">
                       <div class="aporte-card-head">
                         <div>
-                          <span class="section-label">Aporte del paciente</span>
-                          <h4>Ingrese la diferencia que pagará el paciente</h4>
+                          <span class="section-label">Aporte</span>
+                          <h4>Monto que pagará el paciente</h4>
                         </div>
                         <span class="aporte-badge">Editable</span>
                       </div>
                       <div class="row">
                         <div>
-                          <label>Monto a pagar</label>
+                          <label>Aporte del cliente</label>
                           <input
                             type="number"
                             step="0.01"
@@ -325,36 +308,36 @@
                             placeholder="0.00" />
                         </div>
                         <div class="info-card aporte-helper">
-                          Diferencia sugerida: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                          Sugerido: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
                         </div>
                       </div>
-                      <small class="aporte-note">Si el paciente no paga diferencia, deje el monto en 0.00.</small>
+                      <small class="aporte-note">Si no hay aporte, deje 0.00.</small>
                     </div>
                   }
                 } @else {
-                  <div class="info-card">Seleccione una cobertura si el servicio se atenderá por seguro. Si no aplica, pase directo a pagar.</div>
+                  <div class="info-card">Si no usa seguro, vaya directo a pagar.</div>
                 }
               </div>
 
               <div class="factura-summary">
                 <div class="split-summary">
                   <div>
-                    <span>Total de la factura</span>
+                    <span>Total</span>
                     <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
                   </div>
                   <div>
-                    <span>Cobertura del seguro</span>
+                    <span>Cobertura</span>
                     <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
                   </div>
                   <div class="full-span">
-                    <span>Diferencia a pagar por el cliente</span>
+                    <span>Aporte del cliente</span>
                     <strong>RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</strong>
                   </div>
                 </div>
 
                 <div class="action-buttons">
                   <button class="btn-primary" type="button" (click)="continuarAPago()">
-                    <i class="fas fa-arrow-right"></i> Ir a pagar
+                    <i class="fas fa-arrow-right"></i> Pagar
                   </button>
                 </div>
               </div>
@@ -364,17 +347,17 @@
               <div class="billing-card pay-card">
                 <div class="split-head">
                   <div>
-                    <span class="section-label">Pagar</span>
-                    <h3>Registrar uno o varios métodos</h3>
+                    <span class="section-label">Pago</span>
+                    <h3>Registra el pago</h3>
                   </div>
-                  <span class="result-chip">Debe cubrir RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</span>
+                  <span class="result-chip">RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</span>
                 </div>
 
                 <div class="payment-split" *ngIf="montoObjetivoPagoCliente > 0">
                   <div class="split-head">
                     <div>
-                      <span class="section-label">Pagos múltiples</span>
-                      <h3>Divide el monto entre varios métodos</h3>
+                      <span class="section-label">Opcional</span>
+                      <h3>Usa varios métodos si hace falta</h3>
                     </div>
                     <span class="result-chip">Restante RD$ {{ saldoPagosCliente | number:'1.2-2' }}</span>
                   </div>
@@ -395,7 +378,7 @@
                       <i class="fas fa-layer-group"></i> Pagos múltiples
                     </button>
                     @if (ticketCobro.pagosMultiples) {
-                      <button type="button" class="mini-btn" (click)="agregarPago('efectivo')"><i class="fas fa-plus"></i> Agregar pago</button>
+                      <button type="button" class="mini-btn" (click)="agregarPago('efectivo')"><i class="fas fa-plus"></i> Agregar</button>
                     }
                   </div>
 
@@ -421,10 +404,10 @@
 
                 <div class="action-buttons">
                   <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso">
-                    <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
+                    <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Confirmar pago' }}
                   </button>
                   <button class="btn-outline" type="button" (click)="volverAFacturar()">
-                    <i class="fas fa-arrow-left"></i> Volver a facturar
+                    <i class="fas fa-arrow-left"></i> Volver
                   </button>
                   @if (ticketSeleccionado.estado === 'atendiendo') {
                     <button class="btn-warning" type="button" (click)="cancelarTurnoPorAusencia()" [disabled]="pagoEnProceso">
@@ -437,7 +420,7 @@
                 </div>
               </div>
             } @else {
-              <div class="info-card">Revise la factura y presione <strong>Ir a pagar</strong> para registrar el cobro.</div>
+              <div class="info-card">Revise la factura y presione <strong>Pagar</strong> para registrar el cobro.</div>
             }
           </div>
         } @else {
