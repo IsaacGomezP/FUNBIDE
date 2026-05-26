@@ -1011,7 +1011,7 @@ export class ModuloCajaComponent implements OnInit {
     }
 
     if (!montoObjetivoPago && pagosDetalle.length > 0) {
-      this.mostrarNotificacion('warning', 'Pago innecesario', 'Este cobro no requiere aporte del cliente. Quite los métodos de pago o active el aporte.');
+      this.mostrarNotificacion('warning', 'Pago innecesario', 'Este cobro no requiere aporte de la fundación. Quite los métodos de pago o active el aporte.');
       return;
     }
 
@@ -1020,7 +1020,7 @@ export class ModuloCajaComponent implements OnInit {
       : 0;
 
     if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && aporteCliente > total) {
-      this.mostrarNotificacion('error', 'Aporte inválido', 'El aporte del cliente no puede ser mayor que el total del servicio.');
+      this.mostrarNotificacion('error', 'Aporte inválido', 'El aporte no puede ser mayor que el total del servicio.');
       return;
     }
 
@@ -1150,7 +1150,7 @@ export class ModuloCajaComponent implements OnInit {
         this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
           ? `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto total de la factura: RD$ ${total.toFixed(
               2
-            )}\nCobertura del seguro: RD$ ${this.montoCoberturaSeguro.toFixed(2)}\nDiferencia pagada por el paciente: RD$ ${aporteCliente.toFixed(2)}\nSaldo pendiente de seguro: RD$ ${Math.max(total - aporteCliente, 0).toFixed(
+            )}\nCobertura del seguro: RD$ ${this.montoCoberturaSeguro.toFixed(2)}\nAporte de la fundación: RD$ ${aporteCliente.toFixed(2)}\nSaldo pendiente de seguro: RD$ ${Math.max(total - aporteCliente, 0).toFixed(
               2
             )}\n\n${this.nombreAseguradoraSeleccionada}: cuenta registrada como pendiente de cobro a la aseguradora.`
           : `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
@@ -1217,8 +1217,8 @@ export class ModuloCajaComponent implements OnInit {
             <div class="line"><span>Pago</span><strong>${recibo.metodoPago.toUpperCase()}</strong></div>
             <div class="divider"></div>
             <div class="line"><span>Precio servicio</span><strong>RD$ ${recibo.montoBase.toFixed(2)}</strong></div>
-            ${recibo.metodoPago === 'senasa' || recibo.metodoPago === 'renacer' ? `<div class="line"><span>Cobertura seguro</span><strong>RD$ ${recibo.montoCoberturaSeguro.toFixed(2)}</strong></div><div class="line"><span>Diferencia cliente</span><strong>RD$ ${recibo.montoDiferenciaCliente.toFixed(2)}</strong></div>` : ''}
-            ${recibo.aporteCliente !== null && recibo.aporteCliente !== undefined ? `<div class="line"><span>Aporte cliente</span><strong>RD$ ${recibo.aporteCliente.toFixed(2)}</strong></div><div class="line"><span>Saldo seguro</span><strong>RD$ ${(Math.max(recibo.montoBase - recibo.aporteCliente, 0)).toFixed(2)}</strong></div>` : ''}
+            ${recibo.metodoPago === 'senasa' || recibo.metodoPago === 'renacer' ? `<div class="line"><span>Cobertura seguro</span><strong>RD$ ${recibo.montoCoberturaSeguro.toFixed(2)}</strong></div><div class="line"><span>Aporte fundación</span><strong>RD$ ${recibo.montoDiferenciaCliente.toFixed(2)}</strong></div>` : ''}
+            ${recibo.aporteCliente !== null && recibo.aporteCliente !== undefined ? `<div class="line"><span>Aporte fundación</span><strong>RD$ ${recibo.aporteCliente.toFixed(2)}</strong></div><div class="line"><span>Saldo seguro</span><strong>RD$ ${(Math.max(recibo.montoBase - recibo.aporteCliente, 0)).toFixed(2)}</strong></div>` : ''}
             ${recibo.detallePagos.length ? recibo.detallePagos.map((pago) => `<div class="line"><span>${pago.metodo.toUpperCase()}</span><strong>RD$ ${(Number(pago.monto ?? 0)).toFixed(2)}</strong></div>`).join('') : ''}
             ${recibo.metodoPago === 'efectivo' && !recibo.detallePagos.length ? `<div class="line"><span>Recibido</span><strong>RD$ ${(recibo.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="line"><span>Cambio</span><strong>RD$ ${recibo.cambio.toFixed(2)}</strong></div>` : ''}
             ${recibo.metodoPago === 'transferencia' ? `<div class="line"><span>Referencia</span><strong>${recibo.referenciaPago || '-'}</strong></div>` : ''}
