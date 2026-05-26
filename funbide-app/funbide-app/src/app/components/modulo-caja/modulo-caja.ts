@@ -10,6 +10,7 @@ import { TurnoDb, TurnosDbService } from '../../services/turnos-db.service';
 import { printHtmlInHiddenFrame } from '../../utils/print-html';
 
 type Paso = 1 | 2 | 3;
+type FaseCobro = 'facturar' | 'pagar';
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer' | 'mixto';
 type PlanSeguro = 'subsidiado' | 'contributivo' | 'renacer' | '';
 type MetodoPagoLinea = 'efectivo' | 'tarjeta' | 'transferencia';
@@ -32,10 +33,12 @@ interface TicketPendiente extends TurnoDb {
 }
 
 interface TicketCobro {
+  faseCobro: FaseCobro;
   metodoPago: MetodoPago;
   servicioCobroId: string | null;
   planSeguro: PlanSeguro;
   requiereAportePaciente: boolean;
+  pagosMultiples: boolean;
   montoRecibido: number | null;
   aporteCliente: number | null;
   referenciaPago: string;
@@ -78,6 +81,9 @@ interface Notificacion {
 interface ReciboCobro {
   codigoTicket: string;
   servicioNombre: string;
+  montoBase: number;
+  montoCoberturaSeguro: number;
+  montoDiferenciaCliente: number;
   total: number;
   metodoPago: MetodoPago;
   montoRecibido: number | null;
@@ -142,10 +148,12 @@ export class ModuloCajaComponent implements OnInit {
 
   private crearTicketCobro(): TicketCobro {
     return {
+      faseCobro: 'facturar',
       metodoPago: 'efectivo',
       servicioCobroId: null,
       planSeguro: '',
       requiereAportePaciente: false,
+      pagosMultiples: false,
       montoRecibido: null,
       aporteCliente: null,
       referenciaPago: '',
@@ -369,21 +377,34 @@ export class ModuloCajaComponent implements OnInit {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio) return this.ticketSeleccionado?.monto ?? 0;
 
-    if (this.ticketCobro.metodoPago === 'renacer' && servicio.aplica_seguro) {
-      return Number(servicio.precio_renacer ?? servicio.precio ?? 0);
-    }
-
-    if (this.ticketCobro.metodoPago === 'senasa' && servicio.aplica_seguro) {
-      if (this.ticketCobro.planSeguro === 'subsidiado' && servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
-        return Number(servicio.precio_subsidiado);
-      }
-      if (this.ticketCobro.planSeguro === 'contributivo' && servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
-        return Number(servicio.precio_contributivo);
-      }
-      return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio ?? 0);
-    }
-
     return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
+  }
+
+  get montoBaseServicio(): number {
+    return this.totalCobroActual;
+  }
+
+  get montoCoberturaSeguro(): number {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio || !servicio.aplica_seguro) return 0;
+
+    if (this.ticketCobro.metodoPago === 'renacer') {
+      return Number(servicio.precio_renacer ?? 0);
+    }
+
+    if (this.ticketCobro.planSeguro === 'subsidiado') {
+      return Number(servicio.precio_subsidiado ?? 0);
+    }
+
+    if (this.ticketCobro.planSeguro === 'contributivo') {
+      return Number(servicio.precio_contributivo ?? 0);
+    }
+
+    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? 0);
+  }
+
+  get montoDiferenciaPaciente(): number {
+    return Math.max(this.montoBaseServicio - this.montoCoberturaSeguro, 0);
   }
 
   get servicioSeleccionadoCobro(): ServicioPrecioDb | null {
@@ -440,16 +461,16 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   get saldoSeguroPendiente(): number {
-    return Math.max(this.totalCobroActual - this.aporteClienteSeguro, 0);
+    return Math.max(this.montoBaseServicio - this.aporteClienteSeguro, 0);
   }
 
   get montoObjetivoPagoCliente(): number {
     if (this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') {
       if (!this.ticketCobro.requiereAportePaciente) return 0;
-      return Math.max(Number(this.ticketCobro.aporteCliente ?? 0), 0);
+      return Math.max(Number(this.ticketCobro.aporteCliente ?? this.montoDiferenciaPaciente), 0);
     }
 
-    return this.totalCobroActual;
+    return this.montoBaseServicio;
   }
 
   get totalPagosCliente(): number {
@@ -494,6 +515,81 @@ export class ModuloCajaComponent implements OnInit {
     this.onServicioCobroChange();
   }
 
+  seleccionarMetodoPagoSimple(metodo: MetodoPagoLinea) {
+    this.ticketCobro.faseCobro = 'pagar';
+
+    const usaSeguro = this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer';
+
+    if (!usaSeguro) {
+      this.ticketCobro.metodoPago = metodo;
+      this.ticketCobro.planSeguro = '';
+      this.ticketCobro.seguroNombre = '';
+      this.ticketCobro.requiereAportePaciente = false;
+      this.ticketCobro.aporteCliente = 0;
+    }
+
+    if (this.ticketCobro.pagos.length === 0) {
+      this.agregarPago(metodo);
+    } else {
+      this.ticketCobro.pagos[0].metodo = metodo;
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  togglePagosMultiples() {
+    this.ticketCobro.pagosMultiples = !this.ticketCobro.pagosMultiples;
+
+    if (this.ticketCobro.pagosMultiples) {
+      if (this.ticketCobro.pagos.length === 0 && this.montoObjetivoPagoCliente > 0) {
+        this.agregarPago('efectivo');
+      }
+    } else if (this.ticketCobro.pagos.length > 1) {
+      this.ticketCobro.pagos = [this.ticketCobro.pagos[0]];
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  continuarAPago() {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio) {
+      this.mostrarNotificacion('warning', 'Servicio requerido', 'Seleccione un servicio antes de continuar al pago.');
+      return;
+    }
+
+    if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && !this.ticketCobro.seguroNumero.trim()) {
+      this.mostrarNotificacion('warning', 'Seguro requerido', 'Ingrese el número de afiliación antes de pagar.');
+      return;
+    }
+
+    if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && !this.nombreAseguradoraSeleccionada) {
+      this.mostrarNotificacion('warning', 'Cobertura requerida', 'Seleccione la cobertura del seguro antes de pagar.');
+      return;
+    }
+
+    if (this.ticketCobro.metodoPago === 'senasa' && !this.servicioPermiteSenasaSeleccionado) {
+      this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica cobertura SENASA.');
+      return;
+    }
+
+    if (this.ticketCobro.metodoPago === 'renacer' && !this.servicioPermiteRenacerSeleccionado) {
+      this.mostrarNotificacion('warning', 'Seguro no disponible', 'Este servicio no aplica cobertura ARS Renacer.');
+      return;
+    }
+
+    this.ticketCobro.faseCobro = 'pagar';
+    if (this.montoObjetivoPagoCliente > 0 && this.ticketCobro.pagos.length === 0) {
+      this.agregarPago('efectivo');
+    }
+    this.cdr.detectChanges();
+  }
+
+  volverAFacturar() {
+    this.ticketCobro.faseCobro = 'facturar';
+    this.cdr.detectChanges();
+  }
+
   volver() {
     if (this.pagoEnProceso) {
       this.mostrarNotificacion('error', 'Espera', 'Termina el proceso actual antes de salir.');
@@ -514,6 +610,7 @@ export class ModuloCajaComponent implements OnInit {
     if (!this.servicioSeleccionadoCobro?.aplica_seguro) {
       this.agregarPago('efectivo');
     }
+    this.ticketCobro.faseCobro = 'facturar';
     this.pasoActual = 2;
     this.notificacion = null;
     this.cdr.detectChanges();
@@ -692,6 +789,7 @@ export class ModuloCajaComponent implements OnInit {
   onServicioCobroChange() {
     const servicio = this.servicioSeleccionadoCobro;
     const requiereSeguro = this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer';
+    const diferenciaPaciente = this.montoDiferenciaPaciente;
 
     if (servicio && requiereSeguro) {
       const permiteSenasa = this.ticketCobro.metodoPago === 'senasa' && this.servicioPermiteSenasaSeleccionado;
@@ -729,8 +827,11 @@ export class ModuloCajaComponent implements OnInit {
     }
 
     if (requiereSeguro && servicio?.aplica_seguro) {
-      if (this.ticketCobro.aporteCliente === null || this.ticketCobro.aporteCliente === undefined || Number.isNaN(Number(this.ticketCobro.aporteCliente))) {
-        this.ticketCobro.aporteCliente = 0;
+      if (this.ticketCobro.requiereAportePaciente) {
+        this.ticketCobro.aporteCliente = diferenciaPaciente;
+      } else {
+        this.ticketCobro.aporteCliente = diferenciaPaciente > 0 ? diferenciaPaciente : 0;
+        this.ticketCobro.requiereAportePaciente = diferenciaPaciente > 0;
       }
       if (this.ticketCobro.requiereAportePaciente && this.ticketCobro.pagos.length === 0) {
         this.agregarPago('efectivo');
@@ -741,6 +842,11 @@ export class ModuloCajaComponent implements OnInit {
       this.agregarPago(this.ticketCobro.metodoPago === 'tarjeta' ? 'tarjeta' : this.ticketCobro.metodoPago === 'transferencia' ? 'transferencia' : 'efectivo');
     }
 
+    this.ticketCobro.faseCobro = 'facturar';
+    if (this.ticketCobro.pagos.length > 0) {
+      this.limpiarPagos();
+    }
+    this.ticketCobro.pagosMultiples = false;
     this.calcularCambio();
     if (servicio) {
       this.areaDestinoMensaje = servicio.area_destino;
@@ -753,11 +859,12 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   onCambioAportePaciente() {
-    if (this.ticketCobro.requiereAportePaciente && this.ticketCobro.pagos.length === 0 && this.montoObjetivoPagoCliente > 0) {
-      this.agregarPago('efectivo');
-    }
-
-    if (!this.ticketCobro.requiereAportePaciente) {
+    if (this.ticketCobro.requiereAportePaciente) {
+      this.ticketCobro.aporteCliente = this.montoDiferenciaPaciente;
+      if (this.ticketCobro.pagos.length === 0 && this.montoObjetivoPagoCliente > 0) {
+        this.agregarPago('efectivo');
+      }
+    } else {
       this.ticketCobro.aporteCliente = 0;
       this.limpiarPagos();
     }
@@ -805,7 +912,7 @@ export class ModuloCajaComponent implements OnInit {
 
   calcularCambio() {
     const montoRecibido = this.ticketCobro.montoRecibido ?? 0;
-    this.ticketCobro.cambio = Math.max(montoRecibido - this.totalCobroActual, 0);
+    this.ticketCobro.cambio = Math.max(montoRecibido - this.montoObjetivoPagoCliente, 0);
   }
 
   async procesarCobro() {
@@ -814,7 +921,7 @@ export class ModuloCajaComponent implements OnInit {
       return;
     }
 
-    const total = this.totalCobroActual;
+    const total = this.montoBaseServicio;
     if (!total || total <= 0) {
       this.mostrarNotificacion('error', 'Servicio requerido', 'Debe seleccionar un servicio con precio.');
       return;
@@ -862,7 +969,7 @@ export class ModuloCajaComponent implements OnInit {
     }
 
     const aporteCliente = this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
-      ? Math.max(Number(this.ticketCobro.requiereAportePaciente ? this.ticketCobro.aporteCliente ?? 0 : 0), 0)
+      ? Math.max(Number(this.ticketCobro.requiereAportePaciente ? this.ticketCobro.aporteCliente ?? this.montoDiferenciaPaciente : 0), 0)
       : 0;
 
     if ((this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') && aporteCliente > total) {
@@ -972,6 +1079,9 @@ export class ModuloCajaComponent implements OnInit {
       this.reciboUltimoCobro = {
         codigoTicket: this.ticketSeleccionado.codigo,
         servicioNombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
+        montoBase: total,
+        montoCoberturaSeguro: this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer' ? this.montoCoberturaSeguro : 0,
+        montoDiferenciaCliente: this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer' ? aporteCliente : total,
         total,
         metodoPago: this.ticketCobro.metodoPago,
         montoRecibido: montoPagadoCliente,
@@ -984,16 +1094,16 @@ export class ModuloCajaComponent implements OnInit {
 
       const textoPago =
         this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
-          ? `Turno ${this.ticketSeleccionado.codigo} registrado con ${this.nombreAseguradoraSeleccionada}. Queda pendiente por cobrar a la aseguradora.`
+          ? `Turno ${this.ticketSeleccionado.codigo} registrado con ${this.nombreAseguradoraSeleccionada}. El paciente pagó la diferencia y queda pendiente la cobertura de la aseguradora.`
           : `Turno ${this.ticketSeleccionado.codigo} pagado. DirÃ­jase a ${areaDestino} para continuar con su atenciÃ³n.`;
 
       this.mostrarNotificacion('success', 'Pago exitoso', textoPago);
 
       this.mensajePacienteCobro =
         this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer'
-          ? `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto total: RD$ ${total.toFixed(
+          ? `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto total de la factura: RD$ ${total.toFixed(
               2
-            )}\nAporte del paciente: RD$ ${aporteCliente.toFixed(2)}\nSaldo pendiente de seguro: RD$ ${Math.max(total - aporteCliente, 0).toFixed(
+            )}\nCobertura del seguro: RD$ ${this.montoCoberturaSeguro.toFixed(2)}\nDiferencia pagada por el paciente: RD$ ${aporteCliente.toFixed(2)}\nSaldo pendiente de seguro: RD$ ${Math.max(total - aporteCliente, 0).toFixed(
               2
             )}\n\n${this.nombreAseguradoraSeleccionada}: cuenta registrada como pendiente de cobro a la aseguradora.`
           : `PAGO COMPLETADO\n\nTurno: ${this.ticketSeleccionado.codigo}\nMonto: RD$ ${total.toFixed(
@@ -1058,8 +1168,9 @@ export class ModuloCajaComponent implements OnInit {
             <div class="line"><span>Servicio</span><strong>${recibo.servicioNombre}</strong></div>
             <div class="line"><span>Pago</span><strong>${recibo.metodoPago.toUpperCase()}</strong></div>
             <div class="divider"></div>
-            <div class="line"><span>Precio servicio</span><strong>RD$ ${recibo.total.toFixed(2)}</strong></div>
-            ${recibo.aporteCliente !== null && recibo.aporteCliente !== undefined ? `<div class="line"><span>Aporte cliente</span><strong>RD$ ${recibo.aporteCliente.toFixed(2)}</strong></div><div class="line"><span>Saldo seguro</span><strong>RD$ ${(Math.max(recibo.total - recibo.aporteCliente, 0)).toFixed(2)}</strong></div>` : ''}
+            <div class="line"><span>Precio servicio</span><strong>RD$ ${recibo.montoBase.toFixed(2)}</strong></div>
+            ${recibo.metodoPago === 'senasa' || recibo.metodoPago === 'renacer' ? `<div class="line"><span>Cobertura seguro</span><strong>RD$ ${recibo.montoCoberturaSeguro.toFixed(2)}</strong></div><div class="line"><span>Diferencia cliente</span><strong>RD$ ${recibo.montoDiferenciaCliente.toFixed(2)}</strong></div>` : ''}
+            ${recibo.aporteCliente !== null && recibo.aporteCliente !== undefined ? `<div class="line"><span>Aporte cliente</span><strong>RD$ ${recibo.aporteCliente.toFixed(2)}</strong></div><div class="line"><span>Saldo seguro</span><strong>RD$ ${(Math.max(recibo.montoBase - recibo.aporteCliente, 0)).toFixed(2)}</strong></div>` : ''}
             ${recibo.detallePagos.length ? recibo.detallePagos.map((pago) => `<div class="line"><span>${pago.metodo.toUpperCase()}</span><strong>RD$ ${(Number(pago.monto ?? 0)).toFixed(2)}</strong></div>`).join('') : ''}
             ${recibo.metodoPago === 'efectivo' && !recibo.detallePagos.length ? `<div class="line"><span>Recibido</span><strong>RD$ ${(recibo.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="line"><span>Cambio</span><strong>RD$ ${recibo.cambio.toFixed(2)}</strong></div>` : ''}
             ${recibo.metodoPago === 'transferencia' ? `<div class="line"><span>Referencia</span><strong>${recibo.referenciaPago || '-'}</strong></div>` : ''}
