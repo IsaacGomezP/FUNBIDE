@@ -215,12 +215,21 @@
               <div class="split-head">
                 <div>
                   <span class="section-label">Cobro</span>
-                  <h3>Selecciona cobertura y registra el aporte</h3>
+                  <h3>Selecciona método y continúa</h3>
                 </div>
                 <span class="result-chip">Caja lista</span>
               </div>
 
               <div class="payment-methods facturar-methods">
+                <button class="method-btn cash" [class.active]="ticketCobro.metodoPago === 'efectivo'" (click)="seleccionarMetodoPagoSimple('efectivo')">
+                  <i class="fas fa-money-bill-wave"></i> Efectivo
+                </button>
+                <button class="method-btn card" [class.active]="ticketCobro.metodoPago === 'tarjeta'" (click)="seleccionarMetodoPagoSimple('tarjeta')">
+                  <i class="fas fa-credit-card"></i> Tarjeta
+                </button>
+                <button class="method-btn transfer" [class.active]="ticketCobro.metodoPago === 'transferencia'" (click)="seleccionarMetodoPagoSimple('transferencia')">
+                  <i class="fas fa-university"></i> Transferencia
+                </button>
                 <button
                   class="method-btn senasa subsidized"
                   [class.active]="ticketCobro.metodoPago === 'senasa' && ticketCobro.planSeguro === 'subsidiado'"
@@ -236,9 +245,6 @@
                   <i class="fas fa-shield-alt"></i> SENASA Contributivo
                 </button>
                 <button class="method-btn renacer" [class.active]="ticketCobro.metodoPago === 'renacer'" (click)="toggleRenacer()" [disabled]="!servicioPermiteRenacerSeleccionado"><i class="fas fa-umbrella"></i> RENACER</button>
-                <button type="button" class="method-btn clear" (click)="quitarCoberturaSeleccionada()">
-                  <i class="fas fa-ban"></i> Sin cobertura
-                </button>
               </div>
 
               <div class="extra-fields">
@@ -353,26 +359,73 @@
                   <span class="result-chip">RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</span>
                 </div>
 
-                <div class="info-card">
-                  Elija efectivo, tarjeta o transferencia. Si es seguro, el cajero registra el aporte de la fundación.
-                </div>
-
-                <div class="split-list">
-                  @for (pago of ticketCobro.pagos; track pago.id) {
-                    <div class="split-row">
-                      <select [(ngModel)]="pago.metodo">
-                        <option value="efectivo">Efectivo</option>
-                        <option value="tarjeta">Tarjeta</option>
-                        <option value="transferencia">Transferencia</option>
-                      </select>
-                      <input type="number" min="0" step="0.01" [(ngModel)]="pago.monto" placeholder="Monto" />
-                      <input type="text" [(ngModel)]="pago.referencia" placeholder="Referencia / nota" />
-                      <button type="button" class="remove-btn" (click)="quitarPago(pago.id)">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                <div class="payment-panel-simple">
+                  @if (ticketCobro.metodoPago === 'senasa' || ticketCobro.metodoPago === 'renacer') {
+                    <div class="info-card">
+                      El seguro cubre la mayor parte y el cajero registra el aporte de la fundación.
                     </div>
-                  } @empty {
-                    <div class="empty-state">Agregue un pago para continuar.</div>
+                    <div class="row">
+                      <div>
+                        <label>Cobertura del seguro</label>
+                        <input type="text" [value]="'RD$ ' + (montoCoberturaSeguro | number:'1.2-2')" readonly />
+                      </div>
+                      <div>
+                        <label>Aporte de la fundación</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [(ngModel)]="ticketCobro.aporteCliente"
+                          (ngModelChange)="onCambioAportePaciente()"
+                          placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div>
+                        <label>Diferencia pendiente</label>
+                        <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
+                      </div>
+                      <div>
+                        <label>Referencia / nota</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="ticketCobro.referenciaPago"
+                          placeholder="Opcional" />
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="info-card">
+                      Registre el monto recibido. Si paga de más, el sistema mostrará el cambio.
+                    </div>
+                    <div class="row">
+                      <div>
+                        <label>Monto recibido</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [(ngModel)]="ticketCobro.montoRecibido"
+                          (ngModelChange)="calcularCambio()"
+                          placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label>Referencia / nota</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="ticketCobro.referenciaPago"
+                          placeholder="Opcional" />
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div>
+                        <label>Cambio</label>
+                        <input type="text" [value]="'RD$ ' + (ticketCobro.cambio | number:'1.2-2')" readonly />
+                      </div>
+                      <div>
+                        <label>Total a cubrir</label>
+                        <input type="text" [value]="'RD$ ' + (montoObjetivoPagoCliente | number:'1.2-2')" readonly />
+                      </div>
+                    </div>
                   }
                 </div>
 
