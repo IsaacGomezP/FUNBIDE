@@ -874,12 +874,10 @@ export class ModuloCajaComponent implements OnInit {
     }
 
     if (requiereSeguro && servicio?.aplica_seguro) {
-      if (this.ticketCobro.requiereAportePaciente) {
-        this.ticketCobro.aporteCliente = diferenciaPaciente;
-      } else {
-        this.ticketCobro.aporteCliente = diferenciaPaciente > 0 ? diferenciaPaciente : 0;
-        this.ticketCobro.requiereAportePaciente = diferenciaPaciente > 0;
-      }
+      const aporteInicial = Math.max(diferenciaPaciente, 0);
+      const aporteActual = Number(this.ticketCobro.aporteCliente ?? aporteInicial);
+      this.ticketCobro.aporteCliente = Math.min(Math.max(aporteActual > 0 ? aporteActual : aporteInicial, 0), this.montoBaseServicio);
+      this.ticketCobro.requiereAportePaciente = this.ticketCobro.aporteCliente > 0;
       if (this.ticketCobro.requiereAportePaciente && this.ticketCobro.pagos.length === 0) {
         this.agregarPago('efectivo');
       }
@@ -906,13 +904,15 @@ export class ModuloCajaComponent implements OnInit {
   }
 
   onCambioAportePaciente() {
-    if (this.ticketCobro.requiereAportePaciente) {
-      this.ticketCobro.aporteCliente = this.montoDiferenciaPaciente;
+    const aporte = Math.min(Math.max(Number(this.ticketCobro.aporteCliente ?? 0), 0), this.montoBaseServicio);
+    this.ticketCobro.aporteCliente = aporte;
+    this.ticketCobro.requiereAportePaciente = aporte > 0;
+
+    if (aporte > 0) {
       if (this.ticketCobro.pagos.length === 0 && this.montoObjetivoPagoCliente > 0) {
         this.agregarPago('efectivo');
       }
     } else {
-      this.ticketCobro.aporteCliente = 0;
       this.limpiarPagos();
     }
   }

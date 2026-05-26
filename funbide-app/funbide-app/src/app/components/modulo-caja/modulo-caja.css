@@ -572,11 +572,11 @@
 }
 
 .billing-card {
-  padding: 20px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1px solid #dbe4f0;
-  box-shadow: 0 12px 28px rgba(29, 57, 115, 0.06);
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .facturar-methods {
@@ -605,40 +605,54 @@
 
 /* Extra Fields */
 .extra-fields {
-  margin-bottom: 24px;
-}
-
-.checkbox-row {
-  align-items: start;
-}
-
-.inline-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.inline-summary {
   display: grid;
-  gap: 4px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: #fff;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.aporte-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  background: #fbfdff;
   border: 1px solid #dbe4f0;
 }
 
-.inline-summary span {
-  font-size: 12px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.aporte-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.inline-summary strong {
+.aporte-card h4 {
+  margin: 6px 0 0;
   font-size: 18px;
   color: #111827;
+}
+
+.aporte-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aporte-helper {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100%;
+}
+
+.aporte-note {
+  font-size: 12px;
+  color: #64748b;
 }
 
 .payment-split {

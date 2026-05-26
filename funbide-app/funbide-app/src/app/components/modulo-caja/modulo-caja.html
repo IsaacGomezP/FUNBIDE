@@ -263,29 +263,30 @@
                       <label>Diferencia estimada</label>
                       <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
                     </div>
-                    <div class="row checkbox-row">
-                      <label class="inline-check">
-                        <input
-                          type="checkbox"
-                          [(ngModel)]="ticketCobro.requiereAportePaciente"
-                          (change)="onCambioAportePaciente()" />
-                        El paciente pagará la diferencia
-                      </label>
-                      @if (ticketCobro.requiereAportePaciente) {
-                        <div class="inline-summary">
-                          <span>Diferencia a pagar</span>
-                          <strong>RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}</strong>
+                    <div class="aporte-card">
+                      <div class="aporte-card-head">
+                        <div>
+                          <span class="section-label">Aporte del paciente</span>
+                          <h4>Ingrese la diferencia que pagará el paciente</h4>
                         </div>
-                        <div class="inline-summary">
-                          <span>Aporte del paciente</span>
+                        <span class="aporte-badge">Editable</span>
+                      </div>
+                      <div class="row">
+                        <div>
+                          <label>Monto a pagar</label>
                           <input
-                            type="text"
-                            [value]="'RD$ ' + (aporteClienteSeguro | number:'1.2-2')"
-                            readonly />
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            [(ngModel)]="ticketCobro.aporteCliente"
+                            (ngModelChange)="onCambioAportePaciente()"
+                            placeholder="0.00" />
                         </div>
-                      } @else {
-                        <div class="info-card">El seguro cubrirá la factura completa. No se registrará diferencia para el paciente.</div>
-                      }
+                        <div class="info-card aporte-helper">
+                          Diferencia sugerida: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                        </div>
+                      </div>
+                      <small class="aporte-note">Si el paciente no paga diferencia, deje el monto en 0.00.</small>
                     </div>
                   }
                 } @else if (ticketCobro.metodoPago === 'renacer') {
@@ -304,29 +305,30 @@
                       <label>Diferencia estimada</label>
                       <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
                     </div>
-                    <div class="row checkbox-row">
-                      <label class="inline-check">
-                        <input
-                          type="checkbox"
-                          [(ngModel)]="ticketCobro.requiereAportePaciente"
-                          (change)="onCambioAportePaciente()" />
-                        El paciente pagará la diferencia
-                      </label>
-                      @if (ticketCobro.requiereAportePaciente) {
-                        <div class="inline-summary">
-                          <span>Diferencia a pagar</span>
-                          <strong>RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}</strong>
+                    <div class="aporte-card">
+                      <div class="aporte-card-head">
+                        <div>
+                          <span class="section-label">Aporte del paciente</span>
+                          <h4>Ingrese la diferencia que pagará el paciente</h4>
                         </div>
-                        <div class="inline-summary">
-                          <span>Aporte del paciente</span>
+                        <span class="aporte-badge">Editable</span>
+                      </div>
+                      <div class="row">
+                        <div>
+                          <label>Monto a pagar</label>
                           <input
-                            type="text"
-                            [value]="'RD$ ' + (aporteClienteSeguro | number:'1.2-2')"
-                            readonly />
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            [(ngModel)]="ticketCobro.aporteCliente"
+                            (ngModelChange)="onCambioAportePaciente()"
+                            placeholder="0.00" />
                         </div>
-                      } @else {
-                        <div class="info-card">El seguro cubrirá la factura completa. No se registrará diferencia para el paciente.</div>
-                      }
+                        <div class="info-card aporte-helper">
+                          Diferencia sugerida: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                        </div>
+                      </div>
+                      <small class="aporte-note">Si el paciente no paga diferencia, deje el monto en 0.00.</small>
                     </div>
                   }
                 } @else {
