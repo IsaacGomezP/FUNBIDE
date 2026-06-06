@@ -270,7 +270,47 @@
               }
 
               <div class="extra-fields">
-                @if (ticketCobro.metodoPago === 'senasa') {
+                @if (servicioSeguroAutomaticoSeleccionado) {
+                  <div class="insurance-summary">
+                    <div class="summary-grid">
+                      <div>
+                        <span>Total del servicio</span>
+                        <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
+                      </div>
+                      <div>
+                        <span>Cobertura del seguro</span>
+                        <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
+                      </div>
+                      <div>
+                        <span>Monto a pagar</span>
+                        <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div>
+                        <label>Aseguradora</label>
+                        <input type="text" [value]="etiquetaSeguroAutomaticoSeleccionado" readonly />
+                      </div>
+                      <div>
+                        <label>Número de Afiliación</label>
+                        <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
+                      </div>
+                    </div>
+
+                    <div class="payment-methods compact">
+                      <button class="method-btn cash" [class.active]="ticketCobro.metodoCobroAporte === 'efectivo'" type="button" (click)="seleccionarMetodoCobroAporte('efectivo')">
+                        <i class="fas fa-money-bill-wave"></i> Efectivo
+                      </button>
+                      <button class="method-btn card" [class.active]="ticketCobro.metodoCobroAporte === 'tarjeta'" type="button" (click)="seleccionarMetodoCobroAporte('tarjeta')">
+                        <i class="fas fa-credit-card"></i> Tarjeta
+                      </button>
+                      <button class="method-btn transfer" [class.active]="ticketCobro.metodoCobroAporte === 'transferencia'" type="button" (click)="seleccionarMetodoCobroAporte('transferencia')">
+                        <i class="fas fa-university"></i> Transferencia
+                      </button>
+                    </div>
+                  </div>
+                } @else if (ticketCobro.metodoPago === 'senasa') {
                   @if (!servicioPermiteSenasaSeleccionado) {
                     <div class="info-card">Este servicio no aplica cobertura SENASA. Cambie a otro método de seguro.</div>
                   } @else {
@@ -280,30 +320,21 @@
                       <label>Número de Afiliación</label>
                       <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
                     </div>
-                    <div class="aporte-card">
-                      <div class="aporte-card-head">
+                    <div class="insurance-summary">
+                      <div class="summary-grid">
                         <div>
-                          <span class="section-label">Aporte fundación</span>
-                          <h4>Monto a registrar</h4>
+                          <span>Total del servicio</span>
+                          <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
                         </div>
-                        <span class="aporte-badge">Editable</span>
-                      </div>
-                      <div class="row">
                         <div>
-                          <label>Monto del aporte</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            [(ngModel)]="ticketCobro.aporteCliente"
-                            (ngModelChange)="onCambioAportePaciente()"
-                            placeholder="0.00" />
+                          <span>Cobertura del seguro</span>
+                          <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
                         </div>
-                        <div class="info-card aporte-helper">
-                          Sugerido: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                        <div>
+                          <span>Monto a pagar</span>
+                          <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
                         </div>
                       </div>
-                      <small class="aporte-note">Si no hay aporte, deje 0.00.</small>
                     </div>
                   }
                 } @else if (ticketCobro.metodoPago === 'renacer') {
@@ -316,30 +347,21 @@
                       <label>Número de Afiliación</label>
                       <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
                     </div>
-                    <div class="aporte-card">
-                      <div class="aporte-card-head">
+                    <div class="insurance-summary">
+                      <div class="summary-grid">
                         <div>
-                          <span class="section-label">Aporte fundación</span>
-                          <h4>Monto a registrar</h4>
+                          <span>Total del servicio</span>
+                          <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
                         </div>
-                        <span class="aporte-badge">Editable</span>
-                      </div>
-                      <div class="row">
                         <div>
-                          <label>Monto del aporte</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            [(ngModel)]="ticketCobro.aporteCliente"
-                            (ngModelChange)="onCambioAportePaciente()"
-                            placeholder="0.00" />
+                          <span>Cobertura del seguro</span>
+                          <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
                         </div>
-                        <div class="info-card aporte-helper">
-                          Sugerido: RD$ {{ (montoDiferenciaPaciente | number:'1.2-2') }}
+                        <div>
+                          <span>Monto a pagar</span>
+                          <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
                         </div>
                       </div>
-                      <small class="aporte-note">Si no hay aporte, deje 0.00.</small>
                     </div>
                   }
                 } @else {
