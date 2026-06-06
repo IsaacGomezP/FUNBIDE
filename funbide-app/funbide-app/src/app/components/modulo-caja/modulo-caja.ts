@@ -329,10 +329,11 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
   private mapTurnoToTicket(turno: TurnoDb): TicketPendiente {
     const servicio = this.serviciosDisponibles.find((item) => item.id === turno.servicio_id || item.codigo === turno.servicio_id);
+    const aporteEfectivo = servicio?.requiere_aporte_efectivo ? Number(servicio.monto_aporte_efectivo ?? 0) : 0;
 
     return {
       ...turno,
-      monto: servicio?.precio ?? 0,
+      monto: Number(servicio?.precio ?? 0) + aporteEfectivo,
       areaDestino: servicio?.area_destino ?? turno.categoria,
       servicioPrecioId: servicio?.id ?? null,
       servicioPrecioNombre: servicio?.nombre ?? turno.servicio_nombre,
@@ -416,7 +417,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio) return this.ticketSeleccionado?.monto ?? 0;
 
-    return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0);
+    const aporteEfectivo = servicio.requiere_aporte_efectivo ? Number(servicio.monto_aporte_efectivo ?? 0) : 0;
+    return Number(servicio.precio ?? this.ticketSeleccionado?.monto ?? 0) + aporteEfectivo;
   }
 
   get montoBaseServicio(): number {

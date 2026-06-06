@@ -7,18 +7,20 @@ insert into public.servicios_precios (
   precio_subsidiado,
   precio_contributivo,
   precio_renacer,
+  requiere_aporte_efectivo,
+  monto_aporte_efectivo,
   aplica_seguro,
   activo
 ) values
-  ('MED001', 'CONSULTA MEDICINA GENERAL', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, true, true),
-  ('MED002', 'CONSULTA MEDICINA FAMILIAR', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, true, true),
-  ('MED003', 'CONSULTA GINECOBSTETRA', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, true, true),
-  ('MED004', 'CONSULTA PEDIATRIA', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, true, true),
-  ('SON001', 'SONOGRAFIA ABDOMINAL', 'Sonografias', 'Sonografias', 600.00, 600.00, 600.00, 600.00, true, true),
-  ('SON002', 'SONOGRAFIA TIROIDE', 'Sonografias', 'Sonografias', 600.00, 600.00, 600.00, 600.00, true, true),
-  ('LAB001', 'HEMOGRAMA', 'Laboratorio', 'Laboratorio', 200.00, 200.00, 200.00, 200.00, true, true),
-  ('ODO001', 'CONSULTA ODONTOLOGICA GENERAL', 'Odontologia', 'Odontologia', 600.00, 600.00, 600.00, 600.00, true, true),
-  ('ORT001', 'ORTOPEDIA', 'Ortopedia', 'Ortopedia', 500.00, 500.00, 500.00, 500.00, true, true)
+  ('MED001', 'CONSULTA MEDICINA GENERAL', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, false, null, true, true),
+  ('MED002', 'CONSULTA MEDICINA FAMILIAR', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, false, null, true, true),
+  ('MED003', 'CONSULTA GINECOBSTETRA', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, false, null, true, true),
+  ('MED004', 'CONSULTA PEDIATRIA', 'Consultas Medicas', 'Consultas Medicas', 700.00, 700.00, 700.00, 700.00, false, null, true, true),
+  ('SON001', 'SONOGRAFIA ABDOMINAL', 'Sonografias', 'Sonografias', 600.00, 600.00, 600.00, 600.00, false, null, true, true),
+  ('SON002', 'SONOGRAFIA TIROIDE', 'Sonografias', 'Sonografias', 600.00, 600.00, 600.00, 600.00, false, null, true, true),
+  ('LAB001', 'HEMOGRAMA', 'Laboratorio', 'Laboratorio', 200.00, 200.00, 200.00, 200.00, false, null, true, true),
+  ('ODO001', 'CONSULTA ODONTOLOGICA GENERAL', 'Odontologia', 'Odontologia', 600.00, 600.00, 600.00, 600.00, false, null, true, true),
+  ('ORT001', 'ORTOPEDIA', 'Ortopedia', 'Ortopedia', 500.00, 500.00, 500.00, 500.00, false, null, true, true)
 on conflict (codigo) do update set
   nombre = excluded.nombre,
   area_destino = excluded.area_destino,
@@ -27,6 +29,8 @@ on conflict (codigo) do update set
   precio_subsidiado = excluded.precio_subsidiado,
   precio_contributivo = excluded.precio_contributivo,
   precio_renacer = excluded.precio_renacer,
+  requiere_aporte_efectivo = excluded.requiere_aporte_efectivo,
+  monto_aporte_efectivo = excluded.monto_aporte_efectivo,
   aplica_seguro = excluded.aplica_seguro,
   activo = excluded.activo,
   updated_at = now();

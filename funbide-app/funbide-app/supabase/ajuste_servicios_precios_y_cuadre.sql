@@ -2,14 +2,17 @@ alter table if exists public.servicios_precios
   add column if not exists precio_subsidiado numeric(12,2) null,
   add column if not exists precio_contributivo numeric(12,2) null,
   add column if not exists precio_renacer numeric(12,2) null,
+  add column if not exists requiere_aporte_efectivo boolean not null default false,
+  add column if not exists monto_aporte_efectivo numeric(12,2) null,
   add column if not exists aplica_seguro boolean not null default false;
 
 update public.servicios_precios
 set
   precio_subsidiado = coalesce(precio_subsidiado, precio),
   precio_contributivo = coalesce(precio_contributivo, precio),
-  precio_renacer = coalesce(precio_renacer, precio)
-where precio_subsidiado is null or precio_contributivo is null or precio_renacer is null;
+  precio_renacer = coalesce(precio_renacer, precio),
+  requiere_aporte_efectivo = coalesce(requiere_aporte_efectivo, false)
+where precio_subsidiado is null or precio_contributivo is null or precio_renacer is null or requiere_aporte_efectivo is null;
 
 alter table if exists public.cobros
   add column if not exists monto_aporte_cliente numeric(12,2) null default 0;

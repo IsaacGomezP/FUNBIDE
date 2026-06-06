@@ -38,6 +38,10 @@
       <span>Con seguro</span>
       <strong>{{ resumen.conSeguro }}</strong>
     </div>
+    <div class="mini-card">
+      <span>Con aporte</span>
+      <strong>{{ resumen.conAporteEfectivo }}</strong>
+    </div>
   </section>
 
   <div
@@ -61,7 +65,7 @@
       </div>
 
       <div class="form-intro compact">
-        <p>Solo completa codigo, nombre y precio. Lo demas se autocompleta al guardar.</p>
+        <p>Solo completa codigo, nombre, precio y, si aplica, el aporte en efectivo adicional. Lo demas se autocompleta al guardar.</p>
       </div>
 
       @if (!modoEdicion) {
@@ -81,6 +85,23 @@
               <label>Precio</label>
               <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio" placeholder="700" />
             </div>
+
+            <div class="field checkbox-field">
+              <label class="checkbox-card">
+                <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+                <span>
+                  <strong>Requiere aporte en efectivo</strong>
+                  <small>Activa cuando el cliente debe pagar un monto extra aparte del seguro.</small>
+                </span>
+              </label>
+            </div>
+
+            @if (formulario.requiere_aporte_efectivo) {
+              <div class="field featured">
+                <label>Monto de aporte</label>
+                <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" placeholder="100" />
+              </div>
+            }
           </div>
 
           <div class="form-footer">
@@ -123,6 +144,21 @@
             <label>Precio base</label>
             <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio" />
           </div>
+          <div class="field checkbox-field">
+            <label class="checkbox-card">
+              <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+              <span>
+                <strong>Requiere aporte en efectivo</strong>
+                <small>El total de caja sumara este monto al precio base.</small>
+              </span>
+            </label>
+          </div>
+          @if (formulario.requiere_aporte_efectivo) {
+            <div class="field">
+              <label>Monto de aporte</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" />
+            </div>
+          }
           <div class="field">
             <label>Activo</label>
             <select [(ngModel)]="formulario.activo">
@@ -197,6 +233,7 @@
                 <th>Servicio</th>
                 <th>Categoria</th>
                 <th>Precio</th>
+                <th>Aporte</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -213,6 +250,15 @@
                   </td>
                   <td>{{ servicio.categoria }}</td>
                   <td class="price-cell">RD$ {{ servicio.precio | number:'1.2-2' }}</td>
+                  <td>
+                    @if (servicio.requiere_aporte_efectivo) {
+                      <span class="badge accent">
+                        Aporte RD$ {{ (servicio.monto_aporte_efectivo ?? 0) | number:'1.2-2' }}
+                      </span>
+                    } @else {
+                      <span class="badge subtle">Sin aporte</span>
+                    }
+                  </td>
                   <td>
                     <span class="badge" [class.off]="!servicio.activo">{{ servicio.activo ? 'Activo' : 'Inactivo' }}</span>
                   </td>

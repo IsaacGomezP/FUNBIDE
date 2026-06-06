@@ -13,6 +13,8 @@ interface ServicioPrecioForm {
   precio_subsidiado: number | null;
   precio_contributivo: number | null;
   precio_renacer: number | null;
+  requiere_aporte_efectivo: boolean;
+  monto_aporte_efectivo: number | null;
   aplica_seguro: boolean;
   activo: boolean;
 }
@@ -27,6 +29,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -39,6 +43,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -51,6 +57,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -63,6 +71,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -75,6 +85,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 600,
     precio_contributivo: 600,
     precio_renacer: 600,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -87,6 +99,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 200,
     precio_contributivo: 200,
     precio_renacer: 200,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -99,6 +113,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 600,
     precio_contributivo: 600,
     precio_renacer: 600,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   },
@@ -111,6 +127,8 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 500,
     precio_contributivo: 500,
     precio_renacer: 500,
+    requiere_aporte_efectivo: false,
+    monto_aporte_efectivo: null,
     aplica_seguro: true,
     activo: true
   }
@@ -144,7 +162,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
     total: 0,
     activos: 0,
     inactivos: 0,
-    conSeguro: 0
+    conSeguro: 0,
+    conAporteEfectivo: 0
   };
 
   constructor(
@@ -170,6 +189,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio_subsidiado: 0,
       precio_contributivo: 0,
       precio_renacer: 0,
+      requiere_aporte_efectivo: false,
+      monto_aporte_efectivo: null,
       aplica_seguro: true,
       activo: true
     };
@@ -180,7 +201,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       const texto = this.filtroTexto.trim().toLowerCase();
       const coincideTexto =
         !texto ||
-        `${servicio.codigo} ${servicio.nombre} ${servicio.area_destino} ${servicio.categoria} ${servicio.precio} ${servicio.precio_subsidiado ?? ''} ${servicio.precio_contributivo ?? ''} ${servicio.precio_renacer ?? ''}`.toLowerCase().includes(texto);
+        `${servicio.codigo} ${servicio.nombre} ${servicio.area_destino} ${servicio.categoria} ${servicio.precio} ${servicio.precio_subsidiado ?? ''} ${servicio.precio_contributivo ?? ''} ${servicio.precio_renacer ?? ''} ${servicio.monto_aporte_efectivo ?? ''} ${servicio.requiere_aporte_efectivo ? 'aporte' : ''}`.toLowerCase().includes(texto);
       const coincideEstado =
         this.filtroEstado === 'todos' ||
         (this.filtroEstado === 'activos' && servicio.activo) ||
@@ -219,7 +240,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
       total: this.servicios.length,
       activos: this.servicios.filter((servicio) => servicio.activo).length,
       inactivos: this.servicios.filter((servicio) => !servicio.activo).length,
-      conSeguro: this.servicios.filter((servicio) => !!servicio.aplica_seguro).length
+      conSeguro: this.servicios.filter((servicio) => !!servicio.aplica_seguro).length,
+      conAporteEfectivo: this.servicios.filter((servicio) => !!servicio.requiere_aporte_efectivo).length
     };
   }
 
@@ -245,6 +267,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio_subsidiado: servicio.precio_subsidiado ?? servicio.precio ?? 0,
       precio_contributivo: servicio.precio_contributivo ?? servicio.precio ?? 0,
       precio_renacer: servicio.precio_renacer ?? servicio.precio ?? 0,
+      requiere_aporte_efectivo: !!servicio.requiere_aporte_efectivo,
+      monto_aporte_efectivo: servicio.monto_aporte_efectivo ?? null,
       aplica_seguro: !!servicio.aplica_seguro,
       activo: servicio.activo
     };
@@ -267,6 +291,14 @@ export class ModuloGestorPreciosComponent implements OnInit {
     if (Number.isNaN(Number(this.formulario.precio)) || Number(this.formulario.precio) < 0) {
       this.toastMessage('El precio base no es valido.', 'warning');
       return;
+    }
+
+    if (this.formulario.requiere_aporte_efectivo) {
+      const aporteEfectivo = Number(this.formulario.monto_aporte_efectivo ?? 0);
+      if (Number.isNaN(aporteEfectivo) || aporteEfectivo <= 0) {
+        this.toastMessage('Indique el monto de aporte en efectivo.', 'warning');
+        return;
+      }
     }
 
     this.guardando = true;
@@ -296,6 +328,10 @@ export class ModuloGestorPreciosComponent implements OnInit {
           : this.formulario.aplica_seguro
             ? this.normalizarMonto(this.formulario.precio_renacer)
             : null,
+        requiere_aporte_efectivo: this.formulario.requiere_aporte_efectivo,
+        monto_aporte_efectivo: this.formulario.requiere_aporte_efectivo
+          ? this.normalizarMonto(this.formulario.monto_aporte_efectivo)
+          : null,
         aplica_seguro: esCreacion ? true : this.formulario.aplica_seguro,
         activo: this.formulario.activo
       };

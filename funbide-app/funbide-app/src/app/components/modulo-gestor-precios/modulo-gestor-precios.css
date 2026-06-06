@@ -98,7 +98,7 @@
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -220,6 +220,16 @@
   white-space: nowrap;
 }
 
+.badge.accent {
+  background: #e8f4ff;
+  color: #0f4c81;
+}
+
+.badge.subtle {
+  background: #f8fafc;
+  color: #64748b;
+}
+
 .badge.off {
   background: #f1f5f9;
   color: #64748b;
@@ -286,6 +296,42 @@
 .field {
   display: grid;
   gap: 8px;
+}
+
+.checkbox-field {
+  align-self: stretch;
+}
+
+.checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #d9e2ee;
+  background: linear-gradient(135deg, #f8fbff, #eef5ff);
+  cursor: pointer;
+}
+
+.checkbox-card input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #1d3973;
+}
+
+.checkbox-card span {
+  display: grid;
+  gap: 3px;
+}
+
+.checkbox-card strong {
+  color: #0f172a;
+}
+
+.checkbox-card small {
+  color: #64748b;
+  line-height: 1.45;
 }
 
 .field label {
@@ -619,7 +665,7 @@
   }
 
   .price-table tbody td:nth-child(5)::before {
-    content: 'Estado';
+    content: 'Aporte';
     display: block;
     font-size: 11px;
     text-transform: uppercase;
@@ -629,6 +675,16 @@
   }
 
   .price-table tbody td:nth-child(6)::before {
+    content: 'Estado';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 3px;
+  }
+
+  .price-table tbody td:nth-child(7)::before {
     content: '';
   }
 }
