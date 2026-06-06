@@ -74,6 +74,18 @@ export class ServiciosPreciosDbService {
     return data as ServicioPrecioDb;
   }
 
+  async sincronizarCatalogo(servicios: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[]) {
+    if (servicios.length === 0) return [];
+
+    const { data, error } = await this.client
+      .from('servicios_precios')
+      .upsert(servicios, { onConflict: 'codigo' })
+      .select();
+
+    if (error) throw error;
+    return (data ?? []) as ServicioPrecioDb[];
+  }
+
   async activar(id: string) {
     return this.actualizar(id, { activo: true });
   }
