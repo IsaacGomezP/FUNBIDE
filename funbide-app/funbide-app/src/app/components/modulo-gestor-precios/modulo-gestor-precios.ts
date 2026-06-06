@@ -252,7 +252,14 @@ export class ModuloGestorPreciosComponent implements OnInit {
   }
 
   async guardarServicio() {
-    if (!this.formulario.id) {
+    const esCreacion = !this.formulario.id;
+
+    if (esCreacion) {
+      if (!this.formulario.codigo.trim() || !this.formulario.nombre.trim()) {
+        this.toastMessage('Complete codigo y nombre del servicio.', 'warning');
+        return;
+      }
+    } else if (!this.formulario.id) {
       this.toastMessage('Seleccione un servicio del catalogo para editar.', 'warning');
       return;
     }
@@ -266,17 +273,40 @@ export class ModuloGestorPreciosComponent implements OnInit {
     this.cdr.detectChanges();
 
     try {
+      const precioBase = Number(this.formulario.precio);
+      const precioSeguro = esCreacion ? precioBase : undefined;
       const payload = {
+        codigo: this.formulario.codigo.trim().toUpperCase(),
+        nombre: this.formulario.nombre.trim().toUpperCase(),
+        area_destino: esCreacion ? 'General' : this.formulario.area_destino.trim(),
+        categoria: esCreacion ? 'General' : this.formulario.categoria.trim(),
         precio: Number(this.formulario.precio),
-        precio_subsidiado: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_subsidiado) : null,
-        precio_contributivo: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_contributivo) : null,
-        precio_renacer: this.formulario.aplica_seguro ? this.normalizarMonto(this.formulario.precio_renacer) : null,
-        aplica_seguro: this.formulario.aplica_seguro,
+        precio_subsidiado: esCreacion
+          ? precioSeguro
+          : this.formulario.aplica_seguro
+            ? this.normalizarMonto(this.formulario.precio_subsidiado)
+            : null,
+        precio_contributivo: esCreacion
+          ? precioSeguro
+          : this.formulario.aplica_seguro
+            ? this.normalizarMonto(this.formulario.precio_contributivo)
+            : null,
+        precio_renacer: esCreacion
+          ? precioSeguro
+          : this.formulario.aplica_seguro
+            ? this.normalizarMonto(this.formulario.precio_renacer)
+            : null,
+        aplica_seguro: esCreacion ? true : this.formulario.aplica_seguro,
         activo: this.formulario.activo
       };
 
-      await this.serviciosDb.actualizar(this.formulario.id, payload);
-      this.toastMessage('Servicio actualizado correctamente.', 'success');
+      if (this.formulario.id) {
+        await this.serviciosDb.actualizar(this.formulario.id, payload);
+        this.toastMessage('Servicio actualizado correctamente.', 'success');
+      } else {
+        await this.serviciosDb.crear(payload);
+        this.toastMessage('Servicio creado correctamente.', 'success');
+      }
       this.nuevoServicio();
       await this.cargarServicios();
     } catch (error) {

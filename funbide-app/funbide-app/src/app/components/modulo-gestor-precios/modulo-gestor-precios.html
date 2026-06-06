@@ -83,78 +83,112 @@
         </p>
       </div>
 
-      <div class="empty-state" *ngIf="!modoEdicion">
-        Selecciona un servicio en la lista para editarlo.
-      </div>
+      @if (!modoEdicion) {
+        <div class="form-group">
+          <h3>Alta rapida</h3>
+          <div class="grid-form">
+            <div class="field">
+              <label>Codigo de servicio</label>
+              <input type="text" [(ngModel)]="formulario.codigo" placeholder="MED005" />
+            </div>
+            <div class="field">
+              <label>Nombre de servicio</label>
+              <input type="text" [(ngModel)]="formulario.nombre" placeholder="Consulta medicina familiar" />
+            </div>
+            <div class="field featured full-span">
+              <label>Precio</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio" placeholder="700" />
+            </div>
+          </div>
 
-      <div class="form-group" *ngIf="modoEdicion">
-        <h3>Datos fijos</h3>
-        <div class="grid-form">
-          <div class="field">
-            <label>Codigo</label>
-            <input type="text" [ngModel]="formulario.codigo" disabled />
-          </div>
-          <div class="field">
-            <label>Nombre</label>
-            <input type="text" [ngModel]="formulario.nombre" disabled />
-          </div>
-          <div class="field">
-            <label>Area destino</label>
-            <input type="text" [ngModel]="formulario.area_destino" disabled />
-          </div>
-          <div class="field">
-            <label>Categoria</label>
-            <input type="text" [ngModel]="formulario.categoria" disabled />
+          <div class="form-footer">
+            <span class="section-note">Los demas datos se llenan automaticamente al guardar.</span>
+            <div class="form-actions">
+              <button class="primary-btn" type="button" (click)="guardarServicio()" [disabled]="guardando">
+                <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+                <span>{{ guardando ? 'Guardando...' : 'Crear servicio' }}</span>
+              </button>
+              <button class="secondary-btn" type="button" (click)="nuevoServicio()">
+                <i class="fas fa-eraser"></i>
+                <span>Limpiar</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      } @else {
+        <div class="empty-state">
+          Selecciona un servicio en la lista para editarlo, o vuelve al alta rapida para crear uno nuevo.
+        </div>
 
-      <div class="form-group" *ngIf="modoEdicion">
-        <h3>Precios</h3>
-        <div class="grid-form pricing-grid">
-          <div class="field featured">
-            <label>Precio base</label>
-            <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio" />
-          </div>
-          <div class="field">
-            <label>Aplica seguro</label>
-            <select [(ngModel)]="formulario.aplica_seguro">
-              <option [ngValue]="true">Si aplica</option>
-              <option [ngValue]="false">No aplica</option>
-            </select>
-          </div>
-          <div class="field" [class.disabled]="!formulario.aplica_seguro">
-            <label>SENASA subsidiado</label>
-            <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_subsidiado" [disabled]="!formulario.aplica_seguro" />
-          </div>
-          <div class="field" [class.disabled]="!formulario.aplica_seguro">
-            <label>SENASA contributivo</label>
-            <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_contributivo" [disabled]="!formulario.aplica_seguro" />
-          </div>
-          <div class="field full-span" [class.disabled]="!formulario.aplica_seguro">
-            <label>ARS Renacer</label>
-            <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_renacer" [disabled]="!formulario.aplica_seguro" />
+        <div class="form-group">
+          <h3>Datos fijos</h3>
+          <div class="grid-form">
+            <div class="field">
+              <label>Codigo</label>
+              <input type="text" [ngModel]="formulario.codigo" disabled />
+            </div>
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" [ngModel]="formulario.nombre" disabled />
+            </div>
+            <div class="field">
+              <label>Area destino</label>
+              <input type="text" [ngModel]="formulario.area_destino" disabled />
+            </div>
+            <div class="field">
+              <label>Categoria</label>
+              <input type="text" [ngModel]="formulario.categoria" disabled />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="form-footer" *ngIf="modoEdicion">
-        <label class="switch">
-          <input type="checkbox" [(ngModel)]="formulario.activo" />
-          <span>Servicio activo</span>
-        </label>
-
-        <div class="form-actions">
-          <button class="primary-btn" type="button" (click)="guardarServicio()" [disabled]="guardando">
-            <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-save'"></i>
-            <span>{{ guardando ? 'Guardando...' : 'Guardar cambios' }}</span>
-          </button>
-          <button class="secondary-btn" type="button" (click)="nuevoServicio()">
-            <i class="fas fa-eraser"></i>
-            <span>Limpiar</span>
-          </button>
+        <div class="form-group">
+          <h3>Precios</h3>
+          <div class="grid-form pricing-grid">
+            <div class="field featured">
+              <label>Precio base</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio" />
+            </div>
+            <div class="field">
+              <label>Aplica seguro</label>
+              <select [(ngModel)]="formulario.aplica_seguro">
+                <option [ngValue]="true">Si aplica</option>
+                <option [ngValue]="false">No aplica</option>
+              </select>
+            </div>
+            <div class="field" [class.disabled]="!formulario.aplica_seguro">
+              <label>SENASA subsidiado</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_subsidiado" [disabled]="!formulario.aplica_seguro" />
+            </div>
+            <div class="field" [class.disabled]="!formulario.aplica_seguro">
+              <label>SENASA contributivo</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_contributivo" [disabled]="!formulario.aplica_seguro" />
+            </div>
+            <div class="field full-span" [class.disabled]="!formulario.aplica_seguro">
+              <label>ARS Renacer</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.precio_renacer" [disabled]="!formulario.aplica_seguro" />
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div class="form-footer">
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="formulario.activo" />
+            <span>Servicio activo</span>
+          </label>
+
+          <div class="form-actions">
+            <button class="primary-btn" type="button" (click)="guardarServicio()" [disabled]="guardando">
+              <i class="fas" [ngClass]="guardando ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+              <span>{{ guardando ? 'Guardando...' : 'Guardar cambios' }}</span>
+            </button>
+            <button class="secondary-btn" type="button" (click)="nuevoServicio()">
+              <i class="fas fa-eraser"></i>
+              <span>Limpiar</span>
+            </button>
+          </div>
+        </div>
+      }
     </article>
 
     <article class="panel list-panel">

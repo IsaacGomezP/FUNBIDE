@@ -367,6 +367,12 @@
   margin-top: 6px;
 }
 
+.section-note {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .switch {
   display: inline-flex;
   align-items: center;
