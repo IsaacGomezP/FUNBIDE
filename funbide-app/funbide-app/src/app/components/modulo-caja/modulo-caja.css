@@ -569,6 +569,39 @@
   color: #0f172a;
 }
 
+.split-payments {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.split-payment-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.split-payment-row select,
+.split-payment-row input {
+  width: 100%;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-warning.small {
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
 /* Payment Methods */
 .payment-methods {
   display: grid;
@@ -1022,6 +1055,10 @@
   }
 
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .split-payment-row {
     grid-template-columns: 1fr;
   }
 }

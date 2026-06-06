@@ -404,77 +404,128 @@
                 </div>
 
                 <div class="payment-panel-simple">
-                  @if (ticketCobro.metodoPago === 'senasa' || ticketCobro.metodoPago === 'renacer') {
+                  @if (servicioSeguroAutomaticoSeleccionado) {
                     <div class="info-card">
-                      El seguro cubre la mayor parte y el cajero registra el aporte de la fundación.
+                      El servicio ya fue detectado como precio de seguro. El cajero solo registra la afiliación y cobra el aporte.
                     </div>
-                    <div class="row">
-                      <div>
-                        <label>Cobertura del seguro</label>
-                        <input type="text" [value]="'RD$ ' + (montoCoberturaSeguro | number:'1.2-2')" readonly />
+
+                    <div class="insurance-summary">
+                      <div class="summary-grid">
+                        <div>
+                          <span>Total del servicio</span>
+                          <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
+                        </div>
+                        <div>
+                          <span>Cobertura del seguro</span>
+                          <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
+                        </div>
+                        <div>
+                          <span>Monto a pagar</span>
+                          <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
+                        </div>
                       </div>
-                      <div>
-                        <label>Aporte de la fundación</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          [(ngModel)]="ticketCobro.aporteCliente"
-                          (ngModelChange)="onCambioAportePaciente()"
-                          placeholder="0.00" />
+
+                      <div class="row">
+                        <div>
+                          <label>Aseguradora</label>
+                          <input type="text" [value]="etiquetaSeguroAutomaticoSeleccionado" readonly />
+                        </div>
+                        <div>
+                          <label>Número de Afiliación</label>
+                          <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
+                        </div>
                       </div>
-                    </div>
-                    <div class="row">
-                      <div>
-                        <label>Diferencia pendiente</label>
-                        <input type="text" [value]="'RD$ ' + (montoDiferenciaPaciente | number:'1.2-2')" readonly />
-                      </div>
-                      <div>
-                        <label>Referencia / nota</label>
-                        <input
-                          type="text"
-                          [(ngModel)]="ticketCobro.referenciaPago"
-                          placeholder="Opcional" />
+
+                      <div class="payment-methods compact">
+                        <button class="method-btn cash" [class.active]="ticketCobro.metodoCobroAporte === 'efectivo'" type="button" (click)="seleccionarMetodoCobroAporte('efectivo')">
+                          <i class="fas fa-money-bill-wave"></i> Efectivo
+                        </button>
+                        <button class="method-btn card" [class.active]="ticketCobro.metodoCobroAporte === 'tarjeta'" type="button" (click)="seleccionarMetodoCobroAporte('tarjeta')">
+                          <i class="fas fa-credit-card"></i> Tarjeta
+                        </button>
+                        <button class="method-btn transfer" [class.active]="ticketCobro.metodoCobroAporte === 'transferencia'" type="button" (click)="seleccionarMetodoCobroAporte('transferencia')">
+                          <i class="fas fa-university"></i> Transferencia
+                        </button>
                       </div>
                     </div>
                   } @else {
                     <div class="info-card">
-                      Registre el monto recibido. Si paga de más, el sistema mostrará el cambio.
+                      El cajero solo registra el cobro. Si el cliente va a pagar en varias partes, active el modo dividido.
                     </div>
-                    <div class="row">
-                      <div>
-                        <label>Monto recibido</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          [(ngModel)]="ticketCobro.montoRecibido"
-                          (ngModelChange)="calcularCambio()"
-                          placeholder="0.00" />
+
+                    <div class="insurance-summary">
+                      <div class="summary-grid">
+                        <div>
+                          <span>Total a cobrar</span>
+                          <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
+                        </div>
+                        <div>
+                          <span>Monto registrado</span>
+                          <strong>RD$ {{ (ticketCobro.montoRecibido ?? montoBaseServicio) | number:'1.2-2' }}</strong>
+                        </div>
+                        <div>
+                          <span>Cambio</span>
+                          <strong>RD$ {{ ticketCobro.cambio | number:'1.2-2' }}</strong>
+                        </div>
                       </div>
-                      <div>
-                        <label>Referencia / nota</label>
-                        <input
-                          type="text"
-                          [(ngModel)]="ticketCobro.referenciaPago"
-                          placeholder="Opcional" />
+
+                      <div class="payment-methods compact">
+                        <button class="method-btn cash" [class.active]="ticketCobro.metodoPago === 'efectivo' && !ticketCobro.pagosMultiples" type="button" (click)="seleccionarMetodoPagoSimple('efectivo')">
+                          <i class="fas fa-money-bill-wave"></i> Efectivo
+                        </button>
+                        <button class="method-btn card" [class.active]="ticketCobro.metodoPago === 'tarjeta' && !ticketCobro.pagosMultiples" type="button" (click)="seleccionarMetodoPagoSimple('tarjeta')">
+                          <i class="fas fa-credit-card"></i> Tarjeta
+                        </button>
+                        <button class="method-btn transfer" [class.active]="ticketCobro.metodoPago === 'transferencia' && !ticketCobro.pagosMultiples" type="button" (click)="seleccionarMetodoPagoSimple('transferencia')">
+                          <i class="fas fa-university"></i> Transferencia
+                        </button>
+                        <button class="method-btn clear" type="button" (click)="togglePagosMultiples()">
+                          <i class="fas fa-layer-group"></i> {{ ticketCobro.pagosMultiples ? 'Cerrar pago dividido' : 'Pago dividido' }}
+                        </button>
                       </div>
-                    </div>
-                    <div class="row">
-                      <div>
-                        <label>Cambio</label>
-                        <input type="text" [value]="'RD$ ' + (ticketCobro.cambio | number:'1.2-2')" readonly />
-                      </div>
-                      <div>
-                        <label>Total a cubrir</label>
-                        <input type="text" [value]="'RD$ ' + (montoObjetivoPagoCliente | number:'1.2-2')" readonly />
-                      </div>
+
+                      @if (ticketCobro.pagosMultiples) {
+                        <div class="split-payments">
+                          @for (pago of ticketCobro.pagos; track pago.id) {
+                            <div class="split-payment-row">
+                              <select [(ngModel)]="pago.metodo" (ngModelChange)="cambiarMetodoPagoLinea(pago.id, $event)">
+                                <option value="efectivo">Efectivo</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="transferencia">Transferencia</option>
+                              </select>
+                              <input type="number" min="0" step="0.01" [(ngModel)]="pago.monto" placeholder="Monto" />
+                              <button class="btn-warning small" type="button" (click)="quitarPago(pago.id)">Quitar</button>
+                            </div>
+                          }
+
+                          <div class="action-row">
+                            <button class="btn-secondary" type="button" (click)="agregarPago('efectivo')">+ Efectivo</button>
+                            <button class="btn-secondary" type="button" (click)="agregarPago('tarjeta')">+ Tarjeta</button>
+                            <button class="btn-secondary" type="button" (click)="agregarPago('transferencia')">+ Transferencia</button>
+                          </div>
+
+                          <div class="summary-grid split-check">
+                            <div>
+                              <span>Suma de pagos</span>
+                              <strong>RD$ {{ totalPagosCliente | number:'1.2-2' }}</strong>
+                            </div>
+                            <div>
+                              <span>Debe coincidir con</span>
+                              <strong>RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</strong>
+                            </div>
+                            <div>
+                              <span>Estado</span>
+                              <strong>{{ pagoDivididoValido() ? 'Listo' : 'Incompleto' }}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      }
                     </div>
                   }
                 </div>
 
                 <div class="action-buttons">
-                  <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso">
+                  <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso || !puedeCobrarActual">
                     <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
                   </button>
                   <button class="btn-outline" type="button" (click)="volverAFacturar()">

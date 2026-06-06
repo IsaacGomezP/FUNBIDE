@@ -575,6 +575,22 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     return this.montoObjetivoPagoCliente > 0;
   }
 
+  get puedeCobrarActual(): boolean {
+    if (!this.ticketSeleccionado || this.montoBaseServicio <= 0) {
+      return false;
+    }
+
+    if (this.servicioSeguroAutomaticoSeleccionado || this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer') {
+      return Boolean(this.ticketCobro.seguroNumero.trim()) && Boolean(this.nombreAseguradoraSeleccionada);
+    }
+
+    if (this.ticketCobro.pagosMultiples) {
+      return this.pagoDivididoValido();
+    }
+
+    return Number(this.ticketCobro.montoRecibido ?? 0) > 0;
+  }
+
   get nombreAseguradoraSeleccionada(): string {
     if (this.ticketCobro.metodoPago === 'renacer') {
       return 'ARS RENACER';
@@ -643,6 +659,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     this.ticketCobro.requiereAportePaciente = false;
     this.ticketCobro.aporteCliente = null;
     this.ticketCobro.montoRecibido = this.montoBaseServicio > 0 ? this.montoBaseServicio : null;
+    this.ticketCobro.pagosMultiples = false;
+    this.ticketCobro.pagos = [];
     this.ticketCobro.cambio = 0;
     this.ticketCobro.faseCobro = 'facturar';
     this.calcularCambio();
@@ -658,6 +676,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     this.ticketCobro.requiereAportePaciente = false;
     this.ticketCobro.aporteCliente = null;
     this.ticketCobro.montoRecibido = this.montoBaseServicio > 0 ? this.montoBaseServicio : null;
+    this.ticketCobro.pagosMultiples = false;
+    this.ticketCobro.pagos = [];
     this.ticketCobro.cambio = 0;
     this.ticketCobro.faseCobro = 'pagar';
     this.calcularCambio();
@@ -666,12 +686,39 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
   togglePagosMultiples() {
     this.ticketCobro.pagosMultiples = !this.ticketCobro.pagosMultiples;
+    if (this.ticketCobro.pagosMultiples) {
+      this.ticketCobro.pagos = [
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          metodo: 'efectivo',
+          monto: 0,
+          referencia: ''
+        }
+      ];
+      this.ticketCobro.montoRecibido = null;
+    } else {
+      this.ticketCobro.pagos = [];
+      this.ticketCobro.montoRecibido = this.montoBaseServicio > 0 ? this.montoBaseServicio : null;
+    }
+    this.ticketCobro.cambio = 0;
+    this.calcularCambio();
     this.cdr.detectChanges();
   }
 
   seleccionarMetodoCobroAporte(metodo: MetodoPagoLinea) {
     this.ticketCobro.metodoCobroAporte = metodo;
     this.cdr.detectChanges();
+  }
+
+  cambiarMetodoPagoLinea(pagoId: string, metodo: MetodoPagoLinea) {
+    const pago = this.ticketCobro.pagos.find((item) => item.id === pagoId);
+    if (!pago) return;
+    pago.metodo = metodo;
+    this.cdr.detectChanges();
+  }
+
+  pagoDivididoValido(): boolean {
+    return this.ticketCobro.pagos.length > 0 && Math.abs(this.totalPagosCliente - this.montoObjetivoPagoCliente) <= 0.01;
   }
 
   continuarAPago() {
@@ -706,7 +753,11 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       this.ticketCobro.aporteCliente = Math.max(Number(this.ticketCobro.aporteCliente ?? this.montoDiferenciaPaciente), 0);
       this.ticketCobro.montoRecibido = this.ticketCobro.aporteCliente;
     } else {
-      this.ticketCobro.montoRecibido = Math.max(Number(this.ticketCobro.montoRecibido ?? this.montoBaseServicio), 0);
+      if (this.ticketCobro.pagosMultiples) {
+        this.ticketCobro.montoRecibido = this.totalPagosCliente;
+      } else {
+        this.ticketCobro.montoRecibido = Math.max(Number(this.ticketCobro.montoRecibido ?? this.montoBaseServicio), 0);
+      }
     }
     this.calcularCambio();
     this.cdr.detectChanges();
@@ -1028,6 +1079,11 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.ticketCobro.pagosMultiples) {
+      this.ticketCobro.cambio = 0;
+      return;
+    }
+
     const montoRecibido = Number(this.ticketCobro.montoRecibido ?? 0);
     this.ticketCobro.cambio = Math.max(montoRecibido - this.montoBaseServicio, 0);
   }
@@ -1068,15 +1124,33 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
     const aporteEsperado = this.montoDiferenciaPaciente;
     const aporteCliente = esSeguro ? Math.max(Number(this.ticketCobro.aporteCliente ?? aporteEsperado), 0) : 0;
-    const montoRecibido = esSeguro ? aporteCliente : Math.max(Number(this.ticketCobro.montoRecibido ?? 0), 0);
-    const cambio = esSeguro ? 0 : Math.max(montoRecibido - total, 0);
+    const pagosDetalleNormal = this.normalizarPagosDetalle();
+    const totalPagadoNormal = pagosDetalleNormal.reduce((acc, pago) => acc + Number(pago.monto ?? 0), 0);
+    const montoRecibido = esSeguro
+      ? aporteCliente
+      : this.ticketCobro.pagosMultiples
+        ? totalPagadoNormal
+        : Math.max(Number(this.ticketCobro.montoRecibido ?? 0), 0);
+    const cambio = esSeguro || this.ticketCobro.pagosMultiples ? 0 : Math.max(montoRecibido - total, 0);
 
     if (esSeguro && Math.abs(aporteCliente - aporteEsperado) > 0.01) {
       this.mostrarNotificacion('error', 'Aporte inválido', 'El aporte debe coincidir con la diferencia del seguro.');
       return;
     }
 
-    if (!esSeguro) {
+    if (!esSeguro && this.ticketCobro.pagosMultiples) {
+      if (pagosDetalleNormal.length === 0) {
+        this.mostrarNotificacion('error', 'Pago requerido', 'Agregue al menos una forma de pago.');
+        return;
+      }
+
+      if (Math.abs(totalPagadoNormal - total) > 0.01) {
+        this.mostrarNotificacion('error', 'Pago incompleto', 'La suma de los pagos debe ser igual al total de la factura.');
+        return;
+      }
+    }
+
+    if (!esSeguro && !this.ticketCobro.pagosMultiples) {
       if (montoRecibido <= 0) {
         this.mostrarNotificacion('error', 'Pago requerido', 'Ingrese el monto recibido para completar el cobro.');
         return;
@@ -1101,23 +1175,33 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       const servicio = this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId);
       const areaDestino = servicio?.area_destino || this.ticketSeleccionado.areaDestino || 'Área correspondiente';
       const referenciaPago = this.ticketCobro.referenciaPago.trim();
-    const detallePago: PagoDetalle[] = esSeguro
-      ? [
-          {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            metodo: this.ticketCobro.metodoCobroAporte,
-            monto: aporteCliente,
-            referencia: referenciaPago
-          }
-        ]
-      : [
-          {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            metodo: this.ticketCobro.metodoPago as MetodoPagoLinea,
-            monto: montoRecibido,
-            referencia: referenciaPago
-          }
-        ];
+      const metodoRegistrado = esSeguro
+        ? (this.ticketCobro.metodoCobroAporte as MetodoPago)
+        : this.ticketCobro.pagosMultiples
+          ? 'mixto'
+          : this.tipoCobroRegistrado();
+      const detallePago: PagoDetalle[] = esSeguro
+        ? [
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              metodo: this.ticketCobro.metodoCobroAporte,
+              monto: aporteCliente,
+              referencia: referenciaPago
+            }
+          ]
+        : this.ticketCobro.pagosMultiples
+          ? pagosDetalleNormal.map((pago) => ({
+              ...pago,
+              referencia: pago.referencia.trim()
+            }))
+          : [
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                metodo: this.ticketCobro.metodoPago as MetodoPagoLinea,
+                monto: montoRecibido,
+                referencia: referenciaPago
+              }
+            ];
 
       await this.turnosDbService.actualizarTurnoEstado(this.ticketSeleccionado.id, {
         estado: 'finalizado',
@@ -1133,7 +1217,7 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
         servicio_nombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
         servicio_id: servicio?.id ?? this.ticketCobro.servicioCobroId,
         monto_servicio: total,
-        metodo_pago: esSeguro ? (this.ticketCobro.metodoCobroAporte as MetodoPago) : this.tipoCobroRegistrado(),
+        metodo_pago: metodoRegistrado,
         monto_recibido: montoRecibido,
         cambio,
         referencia_pago: referenciaPago || null,
@@ -1211,7 +1295,7 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
         montoCoberturaSeguro: esSeguro ? this.montoCoberturaSeguro : 0,
         montoDiferenciaCliente: esSeguro ? aporteCliente : total,
         total,
-        metodoPago: this.ticketCobro.metodoPago,
+        metodoPago: metodoRegistrado,
         montoRecibido,
         aporteCliente: esSeguro ? aporteCliente : null,
         detallePagos: detallePago,
@@ -1222,7 +1306,9 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
       const textoPago = esSeguro
         ? `Turno ${this.ticketSeleccionado.codigo} registrado con ${this.nombreAseguradoraSeleccionada}. Se guardó la cobertura y la diferencia del cliente.`
-        : `Turno ${this.ticketSeleccionado.codigo} pagado. Diríjase a ${areaDestino} para continuar con su atención.`;
+        : this.ticketCobro.pagosMultiples
+          ? `Turno ${this.ticketSeleccionado.codigo} cobrado en varias partes. Diríjase a ${areaDestino} para continuar con su atención.`
+          : `Turno ${this.ticketSeleccionado.codigo} pagado. Diríjase a ${areaDestino} para continuar con su atención.`;
 
       this.mostrarNotificacion('success', 'Pago exitoso', textoPago);
 
