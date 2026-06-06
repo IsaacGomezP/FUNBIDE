@@ -554,6 +554,24 @@
   border: 1px solid #dbe4f0;
 }
 
+.summary-tile {
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-tile i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eaf2ff, #f8fbff);
+  color: #1d3973;
+  font-size: 16px;
+}
+
 .summary-grid span {
   display: block;
   font-size: 12px;
@@ -573,6 +591,21 @@
   display: grid;
   gap: 12px;
   margin-top: 12px;
+}
+
+.split-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #eef4fb;
+  color: #334155;
+  border: 1px solid #dbe4f0;
+}
+
+.split-hint i {
+  color: #1d3973;
 }
 
 .split-payment-row {
@@ -636,6 +669,8 @@
   background: #1D3973;
   color: white;
   border-color: #1D3973;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(29, 57, 115, 0.18);
 }
 
 .method-btn.senasa.active {
@@ -887,9 +922,36 @@
   background: #eff6ff;
   padding: 16px;
   border-radius: 16px;
-  text-align: center;
+  text-align: left;
   color: #1D3973;
   font-weight: 500;
+}
+
+.info-card-accent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.info-card-accent i {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #1d3973, #3b82f6);
+  margin-top: 2px;
+}
+
+.info-card-accent.seguro i {
+  background: linear-gradient(135deg, #047857, #10b981);
+}
+
+.info-card-accent.normal i {
+  background: linear-gradient(135deg, #1d3973, #3b82f6);
 }
 
 /* Action Buttons */

@@ -405,33 +405,37 @@
 
                 <div class="payment-panel-simple">
                   @if (servicioSeguroAutomaticoSeleccionado) {
-                    <div class="info-card">
+                    <div class="info-card info-card-accent seguro">
+                      <i class="fas fa-shield-heart"></i>
                       El servicio ya fue detectado como precio de seguro. El cajero solo registra la afiliación y cobra el aporte.
                     </div>
 
                     <div class="insurance-summary">
                       <div class="summary-grid">
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-receipt"></i>
                           <span>Total del servicio</span>
                           <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
                         </div>
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-shield-halved"></i>
                           <span>Cobertura del seguro</span>
                           <strong>RD$ {{ montoCoberturaSeguro | number:'1.2-2' }}</strong>
                         </div>
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-hand-holding-dollar"></i>
                           <span>Monto a pagar</span>
                           <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
                         </div>
                       </div>
 
-                      <div class="row">
+                      <div class="row row-compact">
                         <div>
-                          <label>Aseguradora</label>
+                          <label><i class="fas fa-building-shield"></i> Aseguradora</label>
                           <input type="text" [value]="etiquetaSeguroAutomaticoSeleccionado" readonly />
                         </div>
                         <div>
-                          <label>Número de Afiliación</label>
+                          <label><i class="fas fa-id-card"></i> Número de Afiliación</label>
                           <input type="text" [(ngModel)]="ticketCobro.seguroNumero" placeholder="Número de afiliación" />
                         </div>
                       </div>
@@ -449,21 +453,25 @@
                       </div>
                     </div>
                   } @else {
-                    <div class="info-card">
+                    <div class="info-card info-card-accent normal">
+                      <i class="fas fa-cash-register"></i>
                       El cajero solo registra el cobro. Si el cliente va a pagar en varias partes, active el modo dividido.
                     </div>
 
                     <div class="insurance-summary">
                       <div class="summary-grid">
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-receipt"></i>
                           <span>Total a cobrar</span>
                           <strong>RD$ {{ montoBaseServicio | number:'1.2-2' }}</strong>
                         </div>
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-wallet"></i>
                           <span>Monto registrado</span>
                           <strong>RD$ {{ (ticketCobro.montoRecibido ?? montoBaseServicio) | number:'1.2-2' }}</strong>
                         </div>
-                        <div>
+                        <div class="summary-tile">
+                          <i class="fas fa-rotate-left"></i>
                           <span>Cambio</span>
                           <strong>RD$ {{ ticketCobro.cambio | number:'1.2-2' }}</strong>
                         </div>
@@ -486,6 +494,10 @@
 
                       @if (ticketCobro.pagosMultiples) {
                         <div class="split-payments">
+                          <div class="split-hint">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Agrega cada parte del pago y valida que la suma quede exacta.</span>
+                          </div>
                           @for (pago of ticketCobro.pagos; track pago.id) {
                             <div class="split-payment-row">
                               <select [(ngModel)]="pago.metodo" (ngModelChange)="cambiarMetodoPagoLinea(pago.id, $event)">
@@ -499,21 +511,24 @@
                           }
 
                           <div class="action-row">
-                            <button class="btn-secondary" type="button" (click)="agregarPago('efectivo')">+ Efectivo</button>
-                            <button class="btn-secondary" type="button" (click)="agregarPago('tarjeta')">+ Tarjeta</button>
-                            <button class="btn-secondary" type="button" (click)="agregarPago('transferencia')">+ Transferencia</button>
+                            <button class="btn-secondary" type="button" (click)="agregarPago('efectivo')"><i class="fas fa-money-bill-wave"></i> + Efectivo</button>
+                            <button class="btn-secondary" type="button" (click)="agregarPago('tarjeta')"><i class="fas fa-credit-card"></i> + Tarjeta</button>
+                            <button class="btn-secondary" type="button" (click)="agregarPago('transferencia')"><i class="fas fa-building-columns"></i> + Transferencia</button>
                           </div>
 
                           <div class="summary-grid split-check">
-                            <div>
+                            <div class="summary-tile">
+                              <i class="fas fa-calculator"></i>
                               <span>Suma de pagos</span>
                               <strong>RD$ {{ totalPagosCliente | number:'1.2-2' }}</strong>
                             </div>
-                            <div>
+                            <div class="summary-tile">
+                              <i class="fas fa-bullseye"></i>
                               <span>Debe coincidir con</span>
                               <strong>RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</strong>
                             </div>
-                            <div>
+                            <div class="summary-tile">
+                              <i class="fas fa-circle-check"></i>
                               <span>Estado</span>
                               <strong>{{ pagoDivididoValido() ? 'Listo' : 'Incompleto' }}</strong>
                             </div>
@@ -526,7 +541,7 @@
 
                 <div class="action-buttons">
                   <button class="btn-success btn-lg" (click)="procesarCobro()" [disabled]="pagoEnProceso || !puedeCobrarActual">
-                    <i class="fas fa-check-circle"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
+                    <i class="fas fa-bolt"></i> {{ pagoEnProceso ? 'Procesando...' : 'Cobrar' }}
                   </button>
                   <button class="btn-outline" type="button" (click)="volverAFacturar()">
                     <i class="fas fa-arrow-left"></i> Volver
