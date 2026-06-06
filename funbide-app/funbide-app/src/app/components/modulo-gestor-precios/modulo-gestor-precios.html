@@ -42,6 +42,10 @@
       <span>Con aporte</span>
       <strong>{{ resumen.conAporteEfectivo }}</strong>
     </div>
+    <div class="mini-card accent">
+      <span>Con margen interno</span>
+      <strong>{{ resumen.conGananciaInterna }}</strong>
+    </div>
   </section>
 
   <div
@@ -114,6 +118,13 @@
                 <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" placeholder="100" />
               </div>
             }
+
+            @if (formulario.aplica_seguro) {
+              <div class="field featured">
+                <label>Ganancia interna</label>
+                <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_ganancia_interna" placeholder="150" />
+              </div>
+            }
           </div>
 
           <div class="form-footer">
@@ -180,6 +191,12 @@
             <div class="field">
               <label>Monto de aporte</label>
               <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" />
+            </div>
+          }
+          @if (formulario.aplica_seguro) {
+            <div class="field">
+              <label>Ganancia interna</label>
+              <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_ganancia_interna" />
             </div>
           }
           <div class="field">
@@ -281,6 +298,11 @@
                       @if (servicio.requiere_aporte_efectivo) {
                         <span class="badge accent">
                           Aporte RD$ {{ (servicio.monto_aporte_efectivo ?? 0) | number:'1.2-2' }}
+                        </span>
+                      }
+                      @if ((servicio.monto_ganancia_interna ?? 0) > 0) {
+                        <span class="badge warning">
+                          Margen RD$ {{ (servicio.monto_ganancia_interna ?? 0) | number:'1.2-2' }}
                         </span>
                       }
                     </div>

@@ -55,7 +55,7 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
 
   get totalIngresos() {
     if (!this.resumen) return 0;
-    return this.resumen.total_efectivo + this.resumen.total_tarjeta + this.resumen.total_transferencia;
+    return this.resumen.total_ingresos_reales;
   }
 
   async cargarResumen() {
@@ -136,9 +136,11 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
         'SENASA contributivo': resumenDia.total_senasa_contributivo,
         'ARS Renacer': resumenDia.total_renacer,
         'Aporte cliente': resumenDia.total_aporte_cliente,
+        'Ganancia interna': resumenDia.total_ganancia_interna,
         'Pendiente SENASA': resumenDia.total_pendiente_senasa,
         'Pendiente Renacer': resumenDia.total_pendiente_renacer,
-        'Total ingresos': resumenDia.total_efectivo + resumenDia.total_tarjeta + resumenDia.total_transferencia,
+        'Total ingresos visibles': resumenDia.total_ingresos_visibles,
+        'Total ingresos reales': resumenDia.total_ingresos_reales,
         'Turnos en espera': resumenDia.turnos_espera,
         'Turnos llamando': resumenDia.turnos_llamando,
         'Turnos atendiendo': resumenDia.turnos_atendiendo,
@@ -159,6 +161,7 @@ export class ModuloCuadreComponent implements OnInit, OnDestroy {
         'SENASA contributivo': item.total_senasa_contributivo,
         'ARS Renacer': item.total_renacer,
         'Aporte cliente': item.total_aporte_cliente,
+        'Ganancia interna': item.total_ganancia_interna,
         'Pendiente SENASA': item.total_pendiente_senasa,
         'Pendiente Renacer': item.total_pendiente_renacer,
         'Total ingresos': item.total_ingresos,

@@ -33,9 +33,9 @@
       <small>1. Cola | 2. Cobro | 3. Médico</small>
     </div>
     <div class="stat-card neutral">
-      <span class="stat-label">Ingresos del día</span>
-      <strong class="stat-number">RD$ {{ totalIngresosNormalesHoy | number:'1.2-2' }}</strong>
-      <small>Pagos normales registrados</small>
+      <span class="stat-label">Ingreso real del día</span>
+      <strong class="stat-number">RD$ {{ totalIngresosHoy | number:'1.2-2' }}</strong>
+      <small>Cobrado RD$ {{ totalIngresosNormalesHoy | number:'1.2-2' }} · Margen RD$ {{ totalGananciaInternaHoy | number:'1.2-2' }}</small>
     </div>
     <div class="stat-card warning">
       <span class="stat-label">Cuentas por cobrar SENASA</span>
@@ -383,6 +383,10 @@
                     <span>Aporte fundación</span>
                     <strong>RD$ {{ montoObjetivoPagoCliente | number:'1.2-2' }}</strong>
                   </div>
+                  <div class="full-span">
+                    <span>Total interno caja</span>
+                    <strong>RD$ {{ montoTotalInternoServicio | number:'1.2-2' }}</strong>
+                  </div>
                 </div>
 
                 <div class="action-buttons">
@@ -426,6 +430,11 @@
                           <i class="fas fa-hand-holding-dollar"></i>
                           <span>Monto a pagar</span>
                           <strong>RD$ {{ montoDiferenciaPaciente | number:'1.2-2' }}</strong>
+                        </div>
+                        <div class="summary-tile">
+                          <i class="fas fa-chart-line"></i>
+                          <span>Ganancia interna</span>
+                          <strong>RD$ {{ gananciaInternaServicio | number:'1.2-2' }}</strong>
                         </div>
                       </div>
 

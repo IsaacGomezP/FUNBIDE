@@ -85,6 +85,8 @@ interface ReciboCobro {
   montoBase: number;
   montoCoberturaSeguro: number;
   montoDiferenciaCliente: number;
+  montoGananciaInterna: number;
+  totalInterno: number;
   total: number;
   metodoPago: MetodoPago;
   montoRecibido: number | null;
@@ -117,6 +119,7 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
   totalPagadosHoy = 0;
   totalIngresosHoy = 0;
   totalIngresosNormalesHoy = 0;
+  totalGananciaInternaHoy = 0;
   totalPendienteSenasaHoy = 0;
   totalPendienteRenacerHoy = 0;
 
@@ -205,9 +208,10 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       await this.cargarTicketsPendientes();
       this.totalPagadosHoy = await this.contarCobrosHoy();
       this.totalIngresosNormalesHoy = await this.sumarCobrosNormalesHoy();
+      this.totalGananciaInternaHoy = await this.sumarGananciaInternaHoy();
       this.totalPendienteSenasaHoy = await this.sumarPendienteSeguroHoy(['SENASA SUBSIDIADO', 'SENASA CONTRIBUTIVO', 'SENASA']);
       this.totalPendienteRenacerHoy = await this.sumarPendienteSeguroHoy(['ARS RENACER']);
-      this.totalIngresosHoy = this.totalIngresosNormalesHoy;
+      this.totalIngresosHoy = this.totalIngresosNormalesHoy + this.totalGananciaInternaHoy;
     } catch (error) {
       console.error('Error cargando caja:', error);
       this.mostrarNotificacion('error', 'Error', 'No se pudieron cargar los datos.');
@@ -234,9 +238,10 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       await this.cargarTicketsPendientes();
       this.totalPagadosHoy = await this.contarCobrosHoy();
       this.totalIngresosNormalesHoy = await this.sumarCobrosNormalesHoy();
+      this.totalGananciaInternaHoy = await this.sumarGananciaInternaHoy();
       this.totalPendienteSenasaHoy = await this.sumarPendienteSeguroHoy(['SENASA SUBSIDIADO', 'SENASA CONTRIBUTIVO', 'SENASA']);
       this.totalPendienteRenacerHoy = await this.sumarPendienteSeguroHoy(['ARS RENACER']);
-      this.totalIngresosHoy = this.totalIngresosNormalesHoy;
+      this.totalIngresosHoy = this.totalIngresosNormalesHoy + this.totalGananciaInternaHoy;
     } catch (error) {
       console.error('Error refrescando caja:', error);
     } finally {
@@ -289,6 +294,22 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       const esSeguro = row.metodo_pago === 'senasa' || row.metodo_pago === 'renacer';
       const monto = esSeguro ? Number(row.monto_aporte_cliente ?? 0) : Number(row.monto_servicio ?? 0);
       return acc + monto;
+    }, 0);
+  }
+
+  private async sumarGananciaInternaHoy(): Promise<number> {
+    const { inicio, fin } = this.obtenerRangoDia();
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('cobros')
+      .select('monto_ganancia_interna')
+      .gte('created_at', inicio)
+      .lt('created_at', fin);
+
+    if (error) throw error;
+
+    return (data ?? []).reduce((acc: number, row: { monto_ganancia_interna?: number | null }) => {
+      return acc + Number(row.monto_ganancia_interna ?? 0);
     }, 0);
   }
 
@@ -457,6 +478,16 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
   get montoBaseServicio(): number {
     return this.totalCobroActual;
+  }
+
+  get gananciaInternaServicio(): number {
+    const servicio = this.servicioSeleccionadoCobro;
+    if (!servicio?.aplica_seguro) return 0;
+    return Math.max(Number(servicio.monto_ganancia_interna ?? 0), 0);
+  }
+
+  get montoTotalInternoServicio(): number {
+    return this.montoBaseServicio + this.gananciaInternaServicio;
   }
 
   get montoCoberturaSeguro(): number {
@@ -1095,6 +1126,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     }
 
     const total = this.montoBaseServicio;
+    const gananciaInterna = this.gananciaInternaServicio;
+    const totalInterno = this.montoTotalInternoServicio;
     if (!total || total <= 0) {
       this.mostrarNotificacion('error', 'Servicio requerido', 'Debe seleccionar un servicio con precio.');
       return;
@@ -1217,6 +1250,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
         servicio_nombre: servicio?.nombre ?? this.ticketSeleccionado.servicioNombre,
         servicio_id: servicio?.id ?? this.ticketCobro.servicioCobroId,
         monto_servicio: total,
+        monto_ganancia_interna: gananciaInterna,
+        monto_total_interno: totalInterno,
         metodo_pago: metodoRegistrado,
         monto_recibido: montoRecibido,
         cambio,
@@ -1279,7 +1314,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       }
 
       this.totalIngresosNormalesHoy += montoRecibido;
-      this.totalIngresosHoy = this.totalIngresosNormalesHoy;
+      this.totalGananciaInternaHoy += gananciaInterna;
+      this.totalIngresosHoy = this.totalIngresosNormalesHoy + this.totalGananciaInternaHoy;
       if (this.ticketCobro.metodoPago === 'senasa' || this.servicioSeguroAutomaticoSeleccionado) {
         this.totalPendienteSenasaHoy += Math.max(total - aporteCliente, 0);
       } else if (this.ticketCobro.metodoPago === 'renacer' || (this.servicioSeguroAutomaticoSeleccionado && this.etiquetaSeguroAutomaticoSeleccionado === 'ARS RENACER')) {
@@ -1294,6 +1330,8 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
         montoBase: total,
         montoCoberturaSeguro: esSeguro ? this.montoCoberturaSeguro : 0,
         montoDiferenciaCliente: esSeguro ? aporteCliente : total,
+        montoGananciaInterna: gananciaInterna,
+        totalInterno,
         total,
         metodoPago: metodoRegistrado,
         montoRecibido,
@@ -1392,6 +1430,7 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
             ${recibo.metodoPago === 'senasa' || recibo.metodoPago === 'renacer' ? `<div class="line"><span>Cobertura seguro</span><strong>RD$ ${recibo.montoCoberturaSeguro.toFixed(2)}</strong></div><div class="line"><span>Aporte fundación</span><strong>RD$ ${recibo.montoDiferenciaCliente.toFixed(2)}</strong></div>` : ''}
             ${recibo.aporteCliente !== null && recibo.aporteCliente !== undefined ? `<div class="line"><span>Aporte fundación</span><strong>RD$ ${recibo.aporteCliente.toFixed(2)}</strong></div><div class="line"><span>Saldo seguro</span><strong>RD$ ${(Math.max(recibo.montoBase - recibo.aporteCliente, 0)).toFixed(2)}</strong></div>` : ''}
             ${recibo.metodoPago === 'senasa' || recibo.metodoPago === 'renacer' ? '' : `<div class="line"><span>Recibido</span><strong>RD$ ${(recibo.montoRecibido ?? 0).toFixed(2)}</strong></div><div class="line"><span>Cambio</span><strong>RD$ ${recibo.cambio.toFixed(2)}</strong></div>`}
+            <div class="line"><span>Total factura</span><strong>RD$ ${recibo.total.toFixed(2)}</strong></div>
             ${recibo.referenciaPago ? `<div class="line"><span>Referencia</span><strong>${recibo.referenciaPago}</strong></div>` : ''}
             <div class="total">PAGADO</div>
             <div class="footer">Gracias por preferir FUNBIDE.</div>

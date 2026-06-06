@@ -67,8 +67,12 @@
             <strong>{{ resumen.total_cobros }}</strong>
           </div>
           <div class="kpi-card">
-            <span>Ingresos</span>
+            <span>Ingreso real</span>
             <strong>RD$ {{ totalIngresos | number:'1.2-2' }}</strong>
+          </div>
+          <div class="kpi-card">
+            <span>Margen interno</span>
+            <strong>RD$ {{ resumen.total_ganancia_interna | number:'1.2-2' }}</strong>
           </div>
           <div class="kpi-card">
             <span>SENASA subsidiado</span>
@@ -102,6 +106,7 @@
               <div class="mini-row"><strong>SENASA subsidiado</strong><span>RD$ {{ resumen.total_senasa_subsidiado | number:'1.2-2' }}</span></div>
               <div class="mini-row"><strong>SENASA contributivo</strong><span>RD$ {{ resumen.total_senasa_contributivo | number:'1.2-2' }}</span></div>
               <div class="mini-row"><strong>ARS Renacer</strong><span>RD$ {{ resumen.total_renacer | number:'1.2-2' }}</span></div>
+              <div class="mini-row"><strong>Margen interno</strong><span>RD$ {{ resumen.total_ganancia_interna | number:'1.2-2' }}</span></div>
             </div>
           </div>
 

@@ -13,6 +13,7 @@ interface ServicioPrecioForm {
   precio_subsidiado: number | null;
   precio_contributivo: number | null;
   precio_renacer: number | null;
+  monto_ganancia_interna: number | null;
   requiere_aporte_efectivo: boolean;
   monto_aporte_efectivo: number | null;
   aplica_seguro: boolean;
@@ -29,6 +30,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -43,6 +45,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -57,6 +60,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -71,6 +75,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 700,
     precio_contributivo: 700,
     precio_renacer: 700,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -85,6 +90,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 600,
     precio_contributivo: 600,
     precio_renacer: 600,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -99,6 +105,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 200,
     precio_contributivo: 200,
     precio_renacer: 200,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -113,6 +120,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 600,
     precio_contributivo: 600,
     precio_renacer: 600,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -127,6 +135,7 @@ const CATALOGO_FIJO: Omit<ServicioPrecioDb, 'id' | 'created_at' | 'updated_at'>[
     precio_subsidiado: 500,
     precio_contributivo: 500,
     precio_renacer: 500,
+    monto_ganancia_interna: 0,
     requiere_aporte_efectivo: false,
     monto_aporte_efectivo: null,
     aplica_seguro: true,
@@ -159,11 +168,12 @@ export class ModuloGestorPreciosComponent implements OnInit {
   formulario: ServicioPrecioForm = this.formularioInicial();
 
   resumen = {
-    total: 0,
-    activos: 0,
-    inactivos: 0,
-    conSeguro: 0,
-    conAporteEfectivo: 0
+  total: 0,
+  activos: 0,
+  inactivos: 0,
+  conSeguro: 0,
+  conAporteEfectivo: 0,
+  conGananciaInterna: 0
   };
 
   constructor(
@@ -189,6 +199,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio_subsidiado: 0,
       precio_contributivo: 0,
       precio_renacer: 0,
+      monto_ganancia_interna: 0,
       requiere_aporte_efectivo: false,
       monto_aporte_efectivo: null,
       aplica_seguro: true,
@@ -241,7 +252,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
       activos: this.servicios.filter((servicio) => servicio.activo).length,
       inactivos: this.servicios.filter((servicio) => !servicio.activo).length,
       conSeguro: this.servicios.filter((servicio) => !!servicio.aplica_seguro).length,
-      conAporteEfectivo: this.servicios.filter((servicio) => !!servicio.requiere_aporte_efectivo).length
+      conAporteEfectivo: this.servicios.filter((servicio) => !!servicio.requiere_aporte_efectivo).length,
+      conGananciaInterna: this.servicios.filter((servicio) => Number(servicio.monto_ganancia_interna ?? 0) > 0).length
     };
   }
 
@@ -267,6 +279,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       precio_subsidiado: servicio.precio_subsidiado ?? servicio.precio ?? 0,
       precio_contributivo: servicio.precio_contributivo ?? servicio.precio ?? 0,
       precio_renacer: servicio.precio_renacer ?? servicio.precio ?? 0,
+      monto_ganancia_interna: servicio.monto_ganancia_interna ?? 0,
       requiere_aporte_efectivo: !!servicio.requiere_aporte_efectivo,
       monto_aporte_efectivo: servicio.monto_aporte_efectivo ?? null,
       aplica_seguro: !!servicio.aplica_seguro,
@@ -295,6 +308,11 @@ export class ModuloGestorPreciosComponent implements OnInit {
       return;
     }
 
+    if (Number.isNaN(Number(this.formulario.monto_ganancia_interna ?? 0)) || Number(this.formulario.monto_ganancia_interna ?? 0) < 0) {
+      this.toastMessage('La ganancia interna no es valida.', 'warning');
+      return;
+    }
+
     if (this.formulario.requiere_aporte_efectivo) {
       const aporteEfectivo = Number(this.formulario.monto_aporte_efectivo ?? 0);
       if (Number.isNaN(aporteEfectivo) || aporteEfectivo <= 0) {
@@ -311,12 +329,14 @@ export class ModuloGestorPreciosComponent implements OnInit {
       const precioSeguro = esCreacion ? precioBase : undefined;
       const aplicaSeguro = !!this.formulario.aplica_seguro;
       const requiereAporteEfectivo = aplicaSeguro && !!this.formulario.requiere_aporte_efectivo;
+      const gananciaInterna = aplicaSeguro ? this.normalizarMonto(this.formulario.monto_ganancia_interna) ?? 0 : 0;
       const payloadBase = {
         codigo: codigoNormalizado,
         nombre: this.formulario.nombre.trim().toUpperCase(),
         area_destino: esCreacion ? 'General' : this.formulario.area_destino.trim(),
         categoria: esCreacion ? 'General' : this.formulario.categoria.trim(),
         precio: Number(this.formulario.precio),
+        monto_ganancia_interna: gananciaInterna,
         precio_subsidiado: aplicaSeguro && esCreacion
           ? precioSeguro
           : aplicaSeguro
@@ -347,6 +367,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
         const cambiosDuplicado = {
           nombre: payloadBase.nombre,
           precio: payloadBase.precio,
+          monto_ganancia_interna: payloadBase.monto_ganancia_interna,
           aplica_seguro: payloadBase.aplica_seguro,
           requiere_aporte_efectivo: payloadBase.requiere_aporte_efectivo,
           monto_aporte_efectivo: payloadBase.monto_aporte_efectivo,
@@ -367,6 +388,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
           precio_subsidiado: aplicaSeguro ? precioSeguro : null,
           precio_contributivo: aplicaSeguro ? precioSeguro : null,
           precio_renacer: aplicaSeguro ? precioSeguro : null,
+          monto_ganancia_interna: gananciaInterna,
           aplica_seguro: aplicaSeguro
         });
         this.toastMessage('Servicio creado correctamente.', 'success');

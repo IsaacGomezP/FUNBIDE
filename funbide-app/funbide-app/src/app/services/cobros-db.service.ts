@@ -10,6 +10,8 @@ export interface CobroDb {
   servicio_nombre: string;
   servicio_id?: string | null;
   monto_servicio: number;
+  monto_ganancia_interna?: number | null;
+  monto_total_interno?: number | null;
   metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'senasa' | 'renacer' | 'mixto';
   monto_recibido?: number | null;
   cambio?: number | null;

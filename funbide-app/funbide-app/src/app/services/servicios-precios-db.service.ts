@@ -11,6 +11,7 @@ export interface ServicioPrecioDb {
   precio_subsidiado?: number | null;
   precio_contributivo?: number | null;
   precio_renacer?: number | null;
+  monto_ganancia_interna?: number | null;
   requiere_aporte_efectivo?: boolean;
   monto_aporte_efectivo?: number | null;
   aplica_seguro?: boolean;
