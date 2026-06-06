@@ -277,6 +277,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
 
   async guardarServicio() {
     const esCreacion = !this.formulario.id;
+    const codigoNormalizado = this.formulario.codigo.trim().toUpperCase();
+    const servicioExistente = this.servicios.find((servicio) => servicio.codigo.trim().toUpperCase() === codigoNormalizado) ?? null;
 
     if (esCreacion) {
       if (!this.formulario.codigo.trim() || !this.formulario.nombre.trim()) {
@@ -307,8 +309,8 @@ export class ModuloGestorPreciosComponent implements OnInit {
     try {
       const precioBase = Number(this.formulario.precio);
       const precioSeguro = esCreacion ? precioBase : undefined;
-      const payload = {
-        codigo: this.formulario.codigo.trim().toUpperCase(),
+      const payloadBase = {
+        codigo: codigoNormalizado,
         nombre: this.formulario.nombre.trim().toUpperCase(),
         area_destino: esCreacion ? 'General' : this.formulario.area_destino.trim(),
         categoria: esCreacion ? 'General' : this.formulario.categoria.trim(),
@@ -337,17 +339,42 @@ export class ModuloGestorPreciosComponent implements OnInit {
       };
 
       if (this.formulario.id) {
-        await this.serviciosDb.actualizar(this.formulario.id, payload);
+        await this.serviciosDb.actualizar(this.formulario.id, payloadBase);
         this.toastMessage('Servicio actualizado correctamente.', 'success');
+      } else if (servicioExistente) {
+        const cambiosDuplicado = {
+          nombre: payloadBase.nombre,
+          precio: payloadBase.precio,
+          requiere_aporte_efectivo: payloadBase.requiere_aporte_efectivo,
+          monto_aporte_efectivo: payloadBase.monto_aporte_efectivo,
+          activo: payloadBase.activo
+        };
+
+        await this.serviciosDb.actualizar(servicioExistente.id, cambiosDuplicado);
+        this.toastMessage(
+          `El código ${codigoNormalizado} ya existía. Se actualizó ${servicioExistente.nombre.toLowerCase()}.`,
+          'success'
+        );
       } else {
-        await this.serviciosDb.crear(payload);
+        await this.serviciosDb.crear({
+          ...payloadBase,
+          precio_subsidiado: precioSeguro,
+          precio_contributivo: precioSeguro,
+          precio_renacer: precioSeguro,
+          aplica_seguro: true
+        });
         this.toastMessage('Servicio creado correctamente.', 'success');
       }
       this.nuevoServicio();
       await this.cargarServicios();
     } catch (error) {
       console.error('Error guardando servicio', error);
-      this.toastMessage('No se pudo guardar el servicio.', 'danger');
+      const codigoError = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code) : '';
+      if (codigoError === '23505') {
+        this.toastMessage(`El código ${codigoNormalizado} ya existe. Use otro código o edite ese servicio.`, 'warning');
+      } else {
+        this.toastMessage('No se pudo guardar el servicio.', 'danger');
+      }
     } finally {
       this.guardando = false;
       this.cdr.detectChanges();
