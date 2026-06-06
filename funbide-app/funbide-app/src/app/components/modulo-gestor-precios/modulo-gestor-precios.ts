@@ -212,7 +212,7 @@ export class ModuloGestorPreciosComponent implements OnInit {
       const texto = this.filtroTexto.trim().toLowerCase();
       const coincideTexto =
         !texto ||
-        `${servicio.codigo} ${servicio.nombre} ${servicio.area_destino} ${servicio.categoria} ${servicio.precio} ${servicio.precio_subsidiado ?? ''} ${servicio.precio_contributivo ?? ''} ${servicio.precio_renacer ?? ''} ${servicio.monto_aporte_efectivo ?? ''} ${servicio.requiere_aporte_efectivo ? 'aporte' : ''}`.toLowerCase().includes(texto);
+        `${servicio.codigo} ${servicio.nombre} ${servicio.area_destino} ${servicio.categoria} ${servicio.precio} ${servicio.precio_subsidiado ?? ''} ${servicio.precio_contributivo ?? ''} ${servicio.precio_renacer ?? ''} ${servicio.monto_aporte_efectivo ?? ''} ${servicio.monto_ganancia_interna ?? ''} ${servicio.requiere_aporte_efectivo ? 'aporte' : ''}`.toLowerCase().includes(texto);
       const coincideEstado =
         this.filtroEstado === 'todos' ||
         (this.filtroEstado === 'activos' && servicio.activo) ||

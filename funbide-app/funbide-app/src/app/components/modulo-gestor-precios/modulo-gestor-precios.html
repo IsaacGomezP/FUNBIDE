@@ -43,7 +43,7 @@
       <strong>{{ resumen.conAporteEfectivo }}</strong>
     </div>
     <div class="mini-card accent">
-      <span>Con margen interno</span>
+      <span>Con diferencia</span>
       <strong>{{ resumen.conGananciaInterna }}</strong>
     </div>
   </section>
@@ -69,7 +69,7 @@
       </div>
 
       <div class="form-intro compact">
-        <p>Solo completa codigo, nombre, precio y marca si es un precio de seguro. Si aplica, agrega el aporte en efectivo adicional. Lo demas se autocompleta al guardar.</p>
+        <p>Solo completa codigo, nombre, precio y marca si es un precio de seguro. Si aplica, agrega el aporte en efectivo y la diferencia que se le sacara al seguro. Lo demas se autocompleta al guardar.</p>
       </div>
 
       @if (!modoEdicion) {
@@ -121,7 +121,7 @@
 
             @if (formulario.aplica_seguro) {
               <div class="field featured">
-                <label>Ganancia interna</label>
+                <label>Diferencia</label>
                 <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_ganancia_interna" placeholder="150" />
               </div>
             }
@@ -195,7 +195,7 @@
           }
           @if (formulario.aplica_seguro) {
             <div class="field">
-              <label>Ganancia interna</label>
+              <label>Diferencia</label>
               <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_ganancia_interna" />
             </div>
           }
@@ -302,7 +302,7 @@
                       }
                       @if ((servicio.monto_ganancia_interna ?? 0) > 0) {
                         <span class="badge warning">
-                          Margen RD$ {{ (servicio.monto_ganancia_interna ?? 0) | number:'1.2-2' }}
+                          Diferencia RD$ {{ (servicio.monto_ganancia_interna ?? 0) | number:'1.2-2' }}
                         </span>
                       }
                     </div>
