@@ -343,6 +343,38 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     };
   }
 
+  private clasificarSeguroServicio(servicio: ServicioPrecioDb): { metodo: Exclude<MetodoPago, 'efectivo' | 'tarjeta' | 'transferencia' | 'mixto'>; planSeguro: Exclude<PlanSeguro, ''>; etiqueta: string } | null {
+    if (!servicio.aplica_seguro) return null;
+
+    const texto = `${servicio.codigo} ${servicio.nombre} ${servicio.categoria} ${servicio.area_destino}`.toUpperCase();
+
+    if (texto.includes('RENACER')) {
+      return { metodo: 'renacer', planSeguro: 'renacer', etiqueta: 'ARS RENACER' };
+    }
+
+    if (texto.includes('CONTRIBUTIVO')) {
+      return { metodo: 'senasa', planSeguro: 'contributivo', etiqueta: 'SENASA CONTRIBUTIVO' };
+    }
+
+    if (texto.includes('SUBSIDIADO')) {
+      return { metodo: 'senasa', planSeguro: 'subsidiado', etiqueta: 'SENASA SUBSIDIADO' };
+    }
+
+    if (servicio.precio_contributivo !== null && servicio.precio_contributivo !== undefined) {
+      return { metodo: 'senasa', planSeguro: 'contributivo', etiqueta: 'SENASA CONTRIBUTIVO' };
+    }
+
+    if (servicio.precio_subsidiado !== null && servicio.precio_subsidiado !== undefined) {
+      return { metodo: 'senasa', planSeguro: 'subsidiado', etiqueta: 'SENASA SUBSIDIADO' };
+    }
+
+    if (servicio.precio_renacer !== null && servicio.precio_renacer !== undefined) {
+      return { metodo: 'renacer', planSeguro: 'renacer', etiqueta: 'ARS RENACER' };
+    }
+
+    return null;
+  }
+
   private normalizarTexto(valor: string | null | undefined): string {
     return (valor ?? '').toString().trim();
   }
@@ -450,6 +482,17 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
   get servicioSeleccionadoCobro(): ServicioPrecioDb | null {
     return this.serviciosDisponibles.find((item) => item.id === this.ticketCobro.servicioCobroId) ?? null;
+  }
+
+  get servicioSeguroAutomaticoSeleccionado(): boolean {
+    const servicio = this.servicioSeleccionadoCobro;
+    return !!servicio && !!this.clasificarSeguroServicio(servicio);
+  }
+
+  get etiquetaSeguroAutomaticoSeleccionado(): string {
+    const servicio = this.servicioSeleccionadoCobro;
+    const clasificacion = servicio ? this.clasificarSeguroServicio(servicio) : null;
+    return clasificacion?.etiqueta ?? '';
   }
 
   get servicioPermiteSenasaSeleccionado(): boolean {
@@ -863,10 +906,18 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
 
   onServicioCobroChange() {
     const servicio = this.servicioSeleccionadoCobro;
+    const clasificacionSeguro = servicio ? this.clasificarSeguroServicio(servicio) : null;
     const requiereSeguro = this.ticketCobro.metodoPago === 'senasa' || this.ticketCobro.metodoPago === 'renacer';
     const diferenciaPaciente = this.montoDiferenciaPaciente;
 
-    if (servicio && requiereSeguro) {
+    if (clasificacionSeguro) {
+      this.ticketCobro.metodoPago = clasificacionSeguro.metodo;
+      this.ticketCobro.planSeguro = clasificacionSeguro.planSeguro;
+      this.ticketCobro.seguroNombre = clasificacionSeguro.etiqueta;
+      this.ticketCobro.aporteCliente = Math.max(Number(this.ticketCobro.aporteCliente ?? diferenciaPaciente), 0);
+      this.ticketCobro.requiereAportePaciente = true;
+      this.ticketCobro.montoRecibido = this.ticketCobro.aporteCliente;
+    } else if (servicio && requiereSeguro) {
       const permiteSenasa = this.ticketCobro.metodoPago === 'senasa' && this.servicioPermiteSenasaSeleccionado;
       const permiteRenacer = this.ticketCobro.metodoPago === 'renacer' && this.servicioPermiteRenacerSeleccionado;
       if (!servicio.aplica_seguro || (!permiteSenasa && !permiteRenacer)) {
@@ -892,7 +943,7 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
       this.ticketCobro.planSeguro = '';
     }
 
-    if (requiereSeguro && servicio?.aplica_seguro) {
+    if ((requiereSeguro || clasificacionSeguro) && servicio?.aplica_seguro) {
       this.ticketCobro.seguroNombre = this.nombreAseguradoraSeleccionada || this.ticketCobro.seguroNombre || (this.ticketCobro.metodoPago === 'renacer' ? 'ARS RENACER' : 'SENASA');
       this.ticketCobro.aporteCliente = Math.max(Number(this.ticketCobro.aporteCliente ?? diferenciaPaciente), 0);
       this.ticketCobro.requiereAportePaciente = true;

@@ -65,7 +65,7 @@
       </div>
 
       <div class="form-intro compact">
-        <p>Solo completa codigo, nombre, precio y, si aplica, el aporte en efectivo adicional. Lo demas se autocompleta al guardar.</p>
+        <p>Solo completa codigo, nombre, precio y marca si es un precio de seguro. Si aplica, agrega el aporte en efectivo adicional. Lo demas se autocompleta al guardar.</p>
       </div>
 
       @if (!modoEdicion) {
@@ -88,15 +88,27 @@
 
             <div class="field checkbox-field">
               <label class="checkbox-card">
-                <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+                <input type="checkbox" [(ngModel)]="formulario.aplica_seguro" />
                 <span>
-                  <strong>Requiere aporte en efectivo</strong>
-                  <small>Activa cuando el cliente debe pagar un monto extra aparte del seguro.</small>
+                  <strong>Es precio de seguro</strong>
+                  <small>Marca esto si el servicio va al seguro y el cajero solo cobrará el aporte.</small>
                 </span>
               </label>
             </div>
 
-            @if (formulario.requiere_aporte_efectivo) {
+            @if (formulario.aplica_seguro) {
+              <div class="field checkbox-field">
+                <label class="checkbox-card">
+                  <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+                  <span>
+                    <strong>Requiere aporte en efectivo</strong>
+                    <small>Activa cuando el cliente debe pagar un monto extra aparte del seguro.</small>
+                  </span>
+                </label>
+              </div>
+            }
+
+            @if (formulario.aplica_seguro && formulario.requiere_aporte_efectivo) {
               <div class="field featured">
                 <label>Monto de aporte</label>
                 <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" placeholder="100" />
@@ -146,14 +158,25 @@
           </div>
           <div class="field checkbox-field">
             <label class="checkbox-card">
-              <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+              <input type="checkbox" [(ngModel)]="formulario.aplica_seguro" />
               <span>
-                <strong>Requiere aporte en efectivo</strong>
-                <small>El total de caja sumara este monto al precio base.</small>
+                <strong>Es precio de seguro</strong>
+                <small>El cajero lo tomara como seguro y solo cobrara el aporte que corresponda.</small>
               </span>
             </label>
           </div>
-          @if (formulario.requiere_aporte_efectivo) {
+          @if (formulario.aplica_seguro) {
+            <div class="field checkbox-field">
+              <label class="checkbox-card">
+                <input type="checkbox" [(ngModel)]="formulario.requiere_aporte_efectivo" />
+                <span>
+                  <strong>Requiere aporte en efectivo</strong>
+                  <small>El total de caja sumara este monto al precio base.</small>
+                </span>
+              </label>
+            </div>
+          }
+          @if (formulario.aplica_seguro && formulario.requiere_aporte_efectivo) {
             <div class="field">
               <label>Monto de aporte</label>
               <input type="number" min="0" step="0.01" [(ngModel)]="formulario.monto_aporte_efectivo" />
@@ -233,7 +256,7 @@
                 <th>Servicio</th>
                 <th>Categoria</th>
                 <th>Precio</th>
-                <th>Aporte</th>
+                <th>Tipo</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -251,13 +274,16 @@
                   <td>{{ servicio.categoria }}</td>
                   <td class="price-cell">RD$ {{ servicio.precio | number:'1.2-2' }}</td>
                   <td>
-                    @if (servicio.requiere_aporte_efectivo) {
-                      <span class="badge accent">
-                        Aporte RD$ {{ (servicio.monto_aporte_efectivo ?? 0) | number:'1.2-2' }}
+                    <div class="service-tags">
+                      <span class="badge" [class.accent]="servicio.aplica_seguro" [class.subtle]="!servicio.aplica_seguro">
+                        {{ servicio.aplica_seguro ? 'Seguro' : 'Normal' }}
                       </span>
-                    } @else {
-                      <span class="badge subtle">Sin aporte</span>
-                    }
+                      @if (servicio.requiere_aporte_efectivo) {
+                        <span class="badge accent">
+                          Aporte RD$ {{ (servicio.monto_aporte_efectivo ?? 0) | number:'1.2-2' }}
+                        </span>
+                      }
+                    </div>
                   </td>
                   <td>
                     <span class="badge" [class.off]="!servicio.activo">{{ servicio.activo ? 'Activo' : 'Inactivo' }}</span>

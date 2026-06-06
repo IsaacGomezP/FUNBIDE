@@ -309,32 +309,34 @@ export class ModuloGestorPreciosComponent implements OnInit {
     try {
       const precioBase = Number(this.formulario.precio);
       const precioSeguro = esCreacion ? precioBase : undefined;
+      const aplicaSeguro = !!this.formulario.aplica_seguro;
+      const requiereAporteEfectivo = aplicaSeguro && !!this.formulario.requiere_aporte_efectivo;
       const payloadBase = {
         codigo: codigoNormalizado,
         nombre: this.formulario.nombre.trim().toUpperCase(),
         area_destino: esCreacion ? 'General' : this.formulario.area_destino.trim(),
         categoria: esCreacion ? 'General' : this.formulario.categoria.trim(),
         precio: Number(this.formulario.precio),
-        precio_subsidiado: esCreacion
+        precio_subsidiado: aplicaSeguro && esCreacion
           ? precioSeguro
-          : this.formulario.aplica_seguro
+          : aplicaSeguro
             ? this.normalizarMonto(this.formulario.precio_subsidiado)
             : null,
-        precio_contributivo: esCreacion
+        precio_contributivo: aplicaSeguro && esCreacion
           ? precioSeguro
-          : this.formulario.aplica_seguro
+          : aplicaSeguro
             ? this.normalizarMonto(this.formulario.precio_contributivo)
             : null,
-        precio_renacer: esCreacion
+        precio_renacer: aplicaSeguro && esCreacion
           ? precioSeguro
-          : this.formulario.aplica_seguro
+          : aplicaSeguro
             ? this.normalizarMonto(this.formulario.precio_renacer)
             : null,
-        requiere_aporte_efectivo: this.formulario.requiere_aporte_efectivo,
-        monto_aporte_efectivo: this.formulario.requiere_aporte_efectivo
+        requiere_aporte_efectivo: requiereAporteEfectivo,
+        monto_aporte_efectivo: requiereAporteEfectivo
           ? this.normalizarMonto(this.formulario.monto_aporte_efectivo)
           : null,
-        aplica_seguro: esCreacion ? true : this.formulario.aplica_seguro,
+        aplica_seguro: aplicaSeguro,
         activo: this.formulario.activo
       };
 
@@ -345,8 +347,12 @@ export class ModuloGestorPreciosComponent implements OnInit {
         const cambiosDuplicado = {
           nombre: payloadBase.nombre,
           precio: payloadBase.precio,
+          aplica_seguro: payloadBase.aplica_seguro,
           requiere_aporte_efectivo: payloadBase.requiere_aporte_efectivo,
           monto_aporte_efectivo: payloadBase.monto_aporte_efectivo,
+          precio_subsidiado: payloadBase.precio_subsidiado,
+          precio_contributivo: payloadBase.precio_contributivo,
+          precio_renacer: payloadBase.precio_renacer,
           activo: payloadBase.activo
         };
 
@@ -358,10 +364,10 @@ export class ModuloGestorPreciosComponent implements OnInit {
       } else {
         await this.serviciosDb.crear({
           ...payloadBase,
-          precio_subsidiado: precioSeguro,
-          precio_contributivo: precioSeguro,
-          precio_renacer: precioSeguro,
-          aplica_seguro: true
+          precio_subsidiado: aplicaSeguro ? precioSeguro : null,
+          precio_contributivo: aplicaSeguro ? precioSeguro : null,
+          precio_renacer: aplicaSeguro ? precioSeguro : null,
+          aplica_seguro: aplicaSeguro
         });
         this.toastMessage('Servicio creado correctamente.', 'success');
       }

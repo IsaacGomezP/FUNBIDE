@@ -298,6 +298,12 @@
   gap: 8px;
 }
 
+.service-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .checkbox-field {
   align-self: stretch;
 }
@@ -665,7 +671,7 @@
   }
 
   .price-table tbody td:nth-child(5)::before {
-    content: 'Aporte';
+    content: 'Tipo';
     display: block;
     font-size: 11px;
     text-transform: uppercase;
