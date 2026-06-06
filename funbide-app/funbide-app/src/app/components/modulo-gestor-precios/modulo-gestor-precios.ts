@@ -326,10 +326,10 @@ export class ModuloGestorPreciosComponent implements OnInit {
 
     try {
       const precioBase = Number(this.formulario.precio);
-      const precioSeguro = esCreacion ? precioBase : undefined;
       const aplicaSeguro = !!this.formulario.aplica_seguro;
       const requiereAporteEfectivo = aplicaSeguro && !!this.formulario.requiere_aporte_efectivo;
       const gananciaInterna = aplicaSeguro ? this.normalizarMonto(this.formulario.monto_ganancia_interna) ?? 0 : 0;
+      const precioSeguroVisible = aplicaSeguro ? precioBase : null;
       const payloadBase = {
         codigo: codigoNormalizado,
         nombre: this.formulario.nombre.trim().toUpperCase(),
@@ -337,21 +337,9 @@ export class ModuloGestorPreciosComponent implements OnInit {
         categoria: esCreacion ? 'General' : this.formulario.categoria.trim(),
         precio: Number(this.formulario.precio),
         monto_ganancia_interna: gananciaInterna,
-        precio_subsidiado: aplicaSeguro && esCreacion
-          ? precioSeguro
-          : aplicaSeguro
-            ? this.normalizarMonto(this.formulario.precio_subsidiado)
-            : null,
-        precio_contributivo: aplicaSeguro && esCreacion
-          ? precioSeguro
-          : aplicaSeguro
-            ? this.normalizarMonto(this.formulario.precio_contributivo)
-            : null,
-        precio_renacer: aplicaSeguro && esCreacion
-          ? precioSeguro
-          : aplicaSeguro
-            ? this.normalizarMonto(this.formulario.precio_renacer)
-            : null,
+        precio_subsidiado: precioSeguroVisible,
+        precio_contributivo: precioSeguroVisible,
+        precio_renacer: precioSeguroVisible,
         requiere_aporte_efectivo: requiereAporteEfectivo,
         monto_aporte_efectivo: requiereAporteEfectivo
           ? this.normalizarMonto(this.formulario.monto_aporte_efectivo)
@@ -385,9 +373,6 @@ export class ModuloGestorPreciosComponent implements OnInit {
       } else {
         await this.serviciosDb.crear({
           ...payloadBase,
-          precio_subsidiado: aplicaSeguro ? precioSeguro : null,
-          precio_contributivo: aplicaSeguro ? precioSeguro : null,
-          precio_renacer: aplicaSeguro ? precioSeguro : null,
           monto_ganancia_interna: gananciaInterna,
           aplica_seguro: aplicaSeguro
         });

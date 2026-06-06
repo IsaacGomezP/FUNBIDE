@@ -494,19 +494,24 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio || !servicio.aplica_seguro) return 0;
 
+    const coberturaGuardada = this.obtenerCoberturaSeguroGuardada(servicio);
+    return Math.min(Number(servicio.precio ?? coberturaGuardada ?? 0), coberturaGuardada);
+  }
+
+  private obtenerCoberturaSeguroGuardada(servicio: ServicioPrecioDb): number {
     if (this.ticketCobro.metodoPago === 'renacer') {
-      return Number(servicio.precio_renacer ?? 0);
+      return Number(servicio.precio_renacer ?? servicio.precio ?? 0);
     }
 
     if (this.ticketCobro.planSeguro === 'subsidiado') {
-      return Number(servicio.precio_subsidiado ?? 0);
+      return Number(servicio.precio_subsidiado ?? servicio.precio ?? 0);
     }
 
     if (this.ticketCobro.planSeguro === 'contributivo') {
-      return Number(servicio.precio_contributivo ?? 0);
+      return Number(servicio.precio_contributivo ?? servicio.precio ?? 0);
     }
 
-    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? 0);
+    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
   }
 
   get montoDiferenciaPaciente(): number {
@@ -561,16 +566,17 @@ export class ModuloCajaComponent implements OnInit, OnDestroy {
   get precioSeguroDisponible(): number {
     const servicio = this.servicioSeleccionadoCobro;
     if (!servicio || !servicio.aplica_seguro) return 0;
+    const coberturaGuardada = this.obtenerCoberturaSeguroGuardada(servicio);
     if (this.ticketCobro.metodoPago === 'renacer') {
-      return Number(servicio.precio_renacer ?? servicio.precio);
+      return Math.min(Number(servicio.precio ?? coberturaGuardada ?? 0), Number(servicio.precio_renacer ?? coberturaGuardada ?? servicio.precio ?? 0));
     }
     if (this.ticketCobro.planSeguro === 'subsidiado') {
-      return Number(servicio.precio_subsidiado ?? servicio.precio);
+      return Math.min(Number(servicio.precio ?? coberturaGuardada ?? 0), Number(servicio.precio_subsidiado ?? coberturaGuardada ?? servicio.precio ?? 0));
     }
     if (this.ticketCobro.planSeguro === 'contributivo') {
-      return Number(servicio.precio_contributivo ?? servicio.precio);
+      return Math.min(Number(servicio.precio ?? coberturaGuardada ?? 0), Number(servicio.precio_contributivo ?? coberturaGuardada ?? servicio.precio ?? 0));
     }
-    return Number(servicio.precio_subsidiado ?? servicio.precio_contributivo ?? servicio.precio_renacer ?? servicio.precio ?? 0);
+    return Math.min(Number(servicio.precio ?? coberturaGuardada ?? 0), coberturaGuardada);
   }
 
   get aporteClienteSeguro(): number {
